@@ -1,12 +1,13 @@
 <?php
 include_once 'liglabAPI.php';
 
+$ligLabApi = new LigLabApi;	    	    
+
 if(isset($_POST["formula"])){
-	echo proveFormula($_POST["formula"]);
+	echo $ligLabApi->proveFormula($_POST["formula"]);
 }
 ?>
 
-<!DOCTYPE html>
 <html>
     <head>
 		<title>ND Tester</title>
