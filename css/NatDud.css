@@ -1,0 +1,59 @@
+body {
+	background-color: #bee4f3;
+}
+.gly-rotate-tick-not {
+	-webkit-transform: rotate(225deg);
+	-moz-transform: rotate(225deg);
+	-ms-transform: rotate(225deg);
+	-o-transform: rotate(225deg);
+	transform: rotate(225deg);
+}
+.glyphicon {
+	font-size: 16px;
+}
+.text-block-area {
+	padding-top: 1.25rem;
+	text-align: center;
+	font-family: 'Simplifica';
+}
+.text-block-area h1{
+	font-size: 5rem;
+	margin-bottom: 0;
+}
+.text-block-area p{
+	margin-top: 0;
+}
+#main-content {
+	display:none;
+}
+.formulaproof {
+	margin-left: 15%;
+	margin-right: 15%;
+	margin-top: 10%;
+	margin-bottom: 6rem;
+}
+.formula-input-area{
+	padding-bottom: 0.25%;
+}
+.form-rounded { /*overwrite BStrap form-control*/
+	border-radius: 1rem;
+}
+.logic-button-area {
+	text-align: left;
+	margin-left: 1rem;
+	margin-right: 1rem;
+	float: left;
+	display: inline-block;
+}
+.submit-button-area {
+	text-align: right;
+	display: inline-block;
+	float: right;
+	margin-right: 1rem;
+}
+@font-face {
+	font-family: 'Simplifica';
+	font-style: normal;
+	font-weight: normal;
+	src: local('Simplifica'), url('SIMPLIFICA Typeface.woff') format('woff');
+}
