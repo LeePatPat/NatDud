@@ -26,7 +26,7 @@ $(document).ready(function(){
 	
 	//bad input animation
 	$("#logic-submit").click(function(){
-		if(!formulaValid){
+		if(formulaValid == false){
 			if($("#formula").val() === "wrong"){ //CHANGE FOR FORMULA CHECKING
 				//set input border to red and shake for 1 second when input is invalid
 				$('#formula-input-area').effect("shake", {distance:5});
@@ -40,6 +40,7 @@ $(document).ready(function(){
 				formulaValid = true;
 				formulaString = $("#formula").val();
 				$("#formula").prop("disabled", true); //disabled
+				$("#proof-input-area").show();
 				
 				//input is valid, show input area for user's proof
 				$("#proof-area").css("border-color" , "white");
@@ -115,11 +116,12 @@ $(document).ready(function(){
 	});
 	
 	$("body").on("click", "#proof-clear", function(){
-		console.log("we get here");
-		
 		currentLine = 1;
 		formulaValid = false;
-		$("#proof-input-area").empty();
+		$("#proof-area").empty();
+		$("#proof-buttons").empty();
+		$("#proof-input-area").hide();
+		$("#formula").prop("disabled", false); //disabled
 	});
 });
 
