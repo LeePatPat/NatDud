@@ -28,7 +28,7 @@ $(document).ready(function(){
 	$("#logic-submit").click(function(){
 		if(formulaValid == false){
 			if($("#formula").val() === "wrong"){ //CHANGE FOR FORMULA CHECKING
-				//set input border to red and shake for 1 second when input is invalid
+				//set input border to red and shake for 2 seconds when input is invalid
 				$('#formula-input-area').effect("shake", {distance:5});
 				$("#formula").css("border", "1px solid red");
 				$("#error-message").html("Your formula is wrong.");
@@ -46,42 +46,48 @@ $(document).ready(function(){
 				$("#proof-area").css("border-color" , "white");
 				$("#proof-area").css("border-style" , "solid");
 				$("#proof-area").css("border-width" , "1px");
-				$("#proof-area").css("border-radius" , "1rem 1rem 1rem 1rem");			
+				$("#proof-area").css("border-radius" , "1rem 1rem 1rem 1rem");	
+				$("#proof-area").css("overflow" , "hidden");
 				$("#proof-input-area").css("margin-left" , "15%");
 				$("#proof-input-area").css("margin-right" , "15%");
 				
-				
-				var $listDiv = $(' <div id="proof-list"></div> ');
-				var $proofListOlObject= $(' <ol id="proof-list-ol-object"></ol> ');
-				
-				var $divLine = $(' <div id="proof-formula-input-group" class="input-group form-group-sm"></div> ');
-					var $lineFormulaInput = $(' <input id="proof-formula-input" class="form-control" placeholder="Proof Line"> ');
-					var $lineRuleInput = $(' <select id="proof-rule-input" class="selectpicker form-control"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select>');
-					var $lineDependencyInput = $(' <input id="proof-dependency-input" class="form-control" placeholder="Deps."> ');
-				var $addButton = $(' <button id="proof-add" class="btn btn-info">add</button> ');
-				var $removeButton = $(' <button id="proof-remove" class="btn btn-info">remove</button> ');
-				var $clearButton = $(' <button id="proof-clear" class="btn btn-danger">clear</button> ');
-				
-				$("#proof-area").append($listDiv);
+				//add order-list to proof-area
+				var $proofList = $(' <div id="proof-list"></div> ');
+				var $proofListOlObject = $(' <ol id="proof-list-ol-object"></ol> ');
+				$("#proof-area").append($proofList);
 				$("#proof-list").append($proofListOlObject);
-				$("#proof-area").append($divLine);
-					$("#proof-formula-input-group").append($lineFormulaInput);
-					$("#proof-formula-input-group").append($lineRuleInput);
-					$("#proof-formula-input-group").append($lineDependencyInput);
-					$("#proof-formula-input").css("width","20%");
-					$("#proof-rule-input").css("width","25%");
-					$("#proof-dependency-input").css("width","20%");
-					$("#proof-formula-input-group").css("padding-left","10%");
-					$("#proof-formula-input-group").css("padding-bottom","1%");
-					$("#proof-formula-input-group").css("padding-top","1%");
+				$("#proof-list").css("padding-top" , "1%");
+				
+				//add inputs fields to proof-area
+				var $proofFormulaInputGroup = $(' <div id="proof-formula-input-group" class="input-group form-group-sm"></div> '); //#div for containing the input buttons and fields
+				var 	$lineFormulaInput = $(' <input id="proof-formula-input" class="form-control" placeholder="Proof Line"> '); //#button for entering line of proof
+				var 	$lineRuleInput = $(' <select id="proof-rule-input" class="selectpicker form-control"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select>');
+				var 	$lineDependencyInput = $(' <input id="proof-dependency-input" class="form-control" placeholder="Deps."> '); //#input field for dependency numbers
+				$("#proof-area").append($proofFormulaInputGroup);
+				$("#proof-formula-input-group").append($lineFormulaInput);
+				$("#proof-formula-input-group").append($lineRuleInput);
+				$("#proof-formula-input-group").append($lineDependencyInput);
+				$("#proof-formula-input").css("width","50%"); //CSS for input fields
+				$("#proof-rule-input").css("width","20%");
+				$("#proof-dependency-input").css("width","20%");
+				$("#proof-formula-input-group").css("padding-left","10%");
+				$("#proof-formula-input-group").css("padding-bottom","1%");
+				$("#proof-formula-input-group").css("display" , "inline-block");//this fixed overflowing problem
+				
+				//add proof buttons
+				var $addButton = $(' <button id="proof-add" class="btn btn-info">add</button> '); //#button for adding line
+				var $removeButton = $(' <button id="proof-remove" class="btn btn-info">remove</button> '); //button for last line added
+				var $checkButton = $(' <button id="proof-check" class="btn btn-success">check</button> '); //button for sending proof for checking
+				var $clearButton = $(' <button id="proof-clear" class="btn btn-danger">clear</button> '); //button for returning to the formula input
 				$("#proof-buttons").append($addButton);
 				$("#proof-buttons").append($removeButton);
 				$("#proof-buttons").append($clearButton);
-				//$("#proof-buttons").css("padding-left" , "1rem");
-				//$("#proof-buttons").css("padding-right" , "1rem");
-				//$("#proof-add").css("margin-right" , "1rem");
-				//$("#proof-remove").css("margin-right" , "1rem");
-				//$("#proof-clear").css("float" , "right");
+				$("#proof-buttons").css("padding-left" , "1rem");
+				$("#proof-buttons").css("padding-right" , "1rem");
+				$("#proof-buttons").css("padding-top" , "1%");
+				$("#proof-add").css("margin-right" , "1rem");
+				$("#proof-remove").css("margin-right" , "1rem");
+				$("#proof-clear").css("float" , "right");
 			}
 		}
 	});
@@ -99,10 +105,9 @@ $(document).ready(function(){
 									   ' <span id="span-proof-ruledep-'+currentLine+'">'+proofLineRuleDepValue+'</span>');
 			
 			$("#"+currentLineId).append($objectToAddToList);
-			//$("#span-proof-line-" + currentLine).css("" , "");
-			//$("#span-proof-ruledep-" + currentLine).css("float" , "right");
-			//$("#proof-list-ol-object").css("padding-right", "5%");
-			//$("#proof-list-ol-object").css("padding-top", "5%");
+			$("#span-proof-ruledep-" + currentLine).css("float" , "right");
+			$("#proof-list-ol-object").css("padding-right", "5%");
+			$("#proof-list-ol-object").css("padding-top", "5%");
 			
 			currentLine++;
 		}
