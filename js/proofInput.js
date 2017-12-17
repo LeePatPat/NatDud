@@ -2,40 +2,69 @@
  *	JQuery to manipulate elements and validations
  */
 $(document).ready(function(){
-	var formulaValid = false;
-	var currentLine = 1;
-	var formulaString = "";
+	$.getScript("js/tombstone.min.js"); //preload tombstone logic library
+	
+	var formulaValid 	= false;
+	var formulaString 	= "";
+	var currentLine 	= 1; //current line of the proof
+	var message 		= ""; //error message to be displayed
 	
 	//logic button actions
 	$("#logic-imply").click(function(){
-		if(!formulaValid) $("#formula").val($("#formula").val() + "⇒");
-		else $("#proof-formula-input").val($("#proof-formula-input").val() + "⇒");
+		if(!formulaValid){
+			$("#formula").val($("#formula").val() + " ⇒ ");
+			$("#formula").focus();
+		}else{
+			$("#proof-formula-input").val($("#proof-formula-input").val() + "⇒");
+			$("#proof-formula-input").focus();
+		}
 	});
 	$("#logic-and").click(function(){
-		if(!formulaValid) $("#formula").val($("#formula").val() + "∧");
-		else $("#proof-formula-input").val($("#proof-formula-input").val() + "∧");
+		if(!formulaValid){
+			$("#formula").val($("#formula").val() + " ∧ ");
+			$("#formula").focus();
+		}else{
+			$("#proof-formula-input").val($("#proof-formula-input").val() + "∧");
+			$("#proof-formula-input").focus();
+		}
 	});
 	$("#logic-or").click(function(){
-		if(!formulaValid) $("#formula").val($("#formula").val() + "∨");
-		else $("#proof-formula-input").val($("#proof-formula-input").val() + "∨");
+		if(!formulaValid){
+			$("#formula").val($("#formula").val() + " ∨ ");
+			$("#formula").focus();
+		}else{
+			$("#proof-formula-input").val($("#proof-formula-input").val() + "∨");
+			$("#proof-formula-input").focus();
+		}
 	});
 	$("#logic-not").click(function(){
-		if(!formulaValid) $("#formula").val($("#formula").val() + "¬");
-		else $("#proof-formula-input").val($("#proof-formula-input").val() + "¬");
+		if(!formulaValid){
+			$("#formula").val($("#formula").val() + " ¬");
+			$("#formula").focus();
+		}else{
+			$("#proof-formula-input").val($("#proof-formula-input").val() + "¬");
+			$("#proof-formula-input").focus();
+		}
 	});
 	
 	//bad input animation
 	$("#logic-submit").click(function(){
 		if(formulaValid == false){
-			if($("#formula").val() === "wrong"){ //CHANGE FOR FORMULA CHECKING
+			$("#formula").val( $("#formula").val().toUpperCase() );
+			if(!isProvable( $("#formula").val())){ //CHANGE FOR FORMULA CHECKING
+			
 				//set input border to red and shake for 2 seconds when input is invalid
 				$('#formula-input-area').effect("shake", {distance:5});
 				$("#formula").css("border", "1px solid red");
-				$("#error-message").html("Your formula is wrong.");
+				$("#error-message").html(message); //display error message
+				$("#error-message").css("font-size", "1rem");
+				$("#error-message").css("margin-left", "1rem");
+				$("#error-message").css("margin-right", "1rem"); 
 				setTimeout(function(){
 					$("#formula").css("border", "1px solid #cccccc");
 					$("#error-message").html("");
 				} , 2000);
+				
 			}else{
 				formulaValid = true;
 				formulaString = $("#formula").val();
@@ -81,6 +110,7 @@ $(document).ready(function(){
 				var $clearButton = $(' <button id="proof-clear" class="btn btn-danger">clear</button> '); //button for returning to the formula input
 				$("#proof-buttons").append($addButton);
 				$("#proof-buttons").append($removeButton);
+				$("#proof-buttons").append($checkButton);
 				$("#proof-buttons").append($clearButton);
 				$("#proof-buttons").css("padding-left" , "1rem");
 				$("#proof-buttons").css("padding-right" , "1rem");
@@ -93,7 +123,7 @@ $(document).ready(function(){
 	});
 	
 	$("body").on("click", "#proof-add", function(){
-		if(!($("#proof-formula-input").val().trim().length == 0)){ //if logic inputbox is not empty
+		if(!($("#proof-formula-input").val().trim().length == 0 || $("#proof-dependency-input").val().trim().length == 0)){ //if logic inputbox is not empty
 			var currentLineId = "proof-list-li-object-"+(currentLine);
 			
 			var $proofListLiObject = $(' <li id="'+currentLineId+'" style="padding-left: 5%"></li> ');
@@ -117,7 +147,7 @@ $(document).ready(function(){
 		var currentLineId = "proof-list-li-object-" + (currentLine-1);
 		$("#" + currentLineId).remove();
 		
-		if(--currentLine == 0) currentLine = 1;
+		if(--currentLine === 0) currentLine = 1;
 	});
 	
 	$("body").on("click", "#proof-clear", function(){
@@ -128,6 +158,44 @@ $(document).ready(function(){
 		$("#proof-input-area").hide();
 		$("#formula").prop("disabled", false); //disabled
 	});
+	
+	/**
+	*	A function to determine if a provided logic formula is provable by Natural Deduction (a tautology)
+	*	@param {String} formula - User's formula input
+	*	@return {boolean} - Returns whether or not the logic formula is a tautology
+	*/
+	function isProvable (formula) {
+		console.clear();
+		//replace all special characters with something more relatable
+		formula = formula.replace(new RegExp("⇒", "g"), "->");
+		formula = formula.replace(new RegExp("∧", "g"), "&");
+		formula = formula.replace(new RegExp("∨", "g"), "||");
+		formula = formula.replace(new RegExp("¬", "g"), "~");
+		
+		var statement = null;
+		var truthtable = null;
+		try {
+			statement = new tombstone.Statement(formula);
+			truthtable = statement.table();
+		}
+		catch (e) {
+			message = "Your formula is syntactically incorrect";
+			return false;
+		}
+		
+		//convert results of truthtable string into actual array values for processing
+		var rows = truthtable.split("\n");
+		for(var i=2; i<rows.length; i++){
+			var row = [];
+			row = rows[i].split("|");
+			if(row[row.length - 2].trim() === "false"){
+				message = "Your formula is not a tautology, and is therefore not proveable by Natural Deduction";
+				return false;
+			}
+		}
+		
+		return true;
+	}
 });
 
 
