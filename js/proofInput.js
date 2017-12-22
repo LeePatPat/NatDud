@@ -12,7 +12,7 @@ $(document).ready(function(){
 	//logic button actions
 	$("#logic-imply").click(function(){
 		if(!formulaValid){
-			$("#formula").val($("#formula").val() + " ⇒ ");
+			$("#formula").val($("#formula").val() + "⇒");
 			$("#formula").focus();
 		}else{
 			$("#proof-formula-input").val($("#proof-formula-input").val() + "⇒");
@@ -21,7 +21,7 @@ $(document).ready(function(){
 	});
 	$("#logic-and").click(function(){
 		if(!formulaValid){
-			$("#formula").val($("#formula").val() + " ∧ ");
+			$("#formula").val($("#formula").val() + "∧");
 			$("#formula").focus();
 		}else{
 			$("#proof-formula-input").val($("#proof-formula-input").val() + "∧");
@@ -30,7 +30,7 @@ $(document).ready(function(){
 	});
 	$("#logic-or").click(function(){
 		if(!formulaValid){
-			$("#formula").val($("#formula").val() + " ∨ ");
+			$("#formula").val($("#formula").val() + "∨");
 			$("#formula").focus();
 		}else{
 			$("#proof-formula-input").val($("#proof-formula-input").val() + "∨");
@@ -39,7 +39,7 @@ $(document).ready(function(){
 	});
 	$("#logic-not").click(function(){
 		if(!formulaValid){
-			$("#formula").val($("#formula").val() + " ¬");
+			$("#formula").val($("#formula").val() + "¬");
 			$("#formula").focus();
 		}else{
 			$("#proof-formula-input").val($("#proof-formula-input").val() + "¬");
@@ -123,7 +123,7 @@ $(document).ready(function(){
 	});
 	
 	$("body").on("click", "#proof-add", function(){
-		if(!($("#proof-formula-input").val().trim().length == 0 || $("#proof-dependency-input").val().trim().length == 0)){ //if logic inputbox is not empty
+		if(!($("#proof-formula-input").val().trim().length == 0)){ //if logic inputbox is not empty
 			var currentLineId = "proof-list-li-object-"+(currentLine);
 			
 			var $proofListLiObject = $(' <li id="'+currentLineId+'" style="padding-left: 5%"></li> ');
@@ -189,7 +189,7 @@ $(document).ready(function(){
 			var row = [];
 			row = rows[i].split("|");
 			if(row[row.length - 2].trim() === "false"){
-				message = "Your formula is not a tautology, and is therefore not proveable by Natural Deduction";
+				message = "Your formula is not a tautology, and is therefore not provable by Natural Deduction";
 				return false;
 			}
 		}
