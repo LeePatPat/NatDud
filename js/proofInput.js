@@ -2,8 +2,6 @@
  *	JQuery to manipulate elements and validations
  */
 $(document).ready(function(){
-	$.getScript("js/tombstone.min.js"); //preload tombstone logic library
-	
 	var formulaValid 	= false;
 	var formulaString 	= "";
 	var currentLine 	= 1; //current line of the proof
@@ -159,13 +157,16 @@ $(document).ready(function(){
 		$("#formula").prop("disabled", false); //disabled
 	});
 	
+	
+	$.getScript("js/tombstone.min.js"); //preload tombstone logic library
+	
 	/**
 	*	A function to determine if a provided logic formula is provable by Natural Deduction (a tautology)
 	*	@param {String} formula - User's formula input
 	*	@return {boolean} - Returns whether or not the logic formula is a tautology
 	*/
 	function isProvable (formula) {
-		console.clear();
+		//console.clear();
 		//replace all special characters with something more relatable
 		formula = formula.replace(new RegExp("⇒", "g"), "->");
 		formula = formula.replace(new RegExp("∧", "g"), "&");
@@ -193,6 +194,12 @@ $(document).ready(function(){
 				return false;
 			}
 		}
+		
+		console.log(statement.table()); 
+		console.log(statement.symbols);
+		console.log(statement.symbolsRPN);
+		console.log(statement.tree);
+		console.log(JSON.stringify(statement.tree));
 		
 		return true;
 	}
