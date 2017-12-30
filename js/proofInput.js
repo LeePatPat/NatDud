@@ -159,6 +159,7 @@ $(document).ready(function(){
 	
 	
 	$.getScript("js/tombstone.min.js"); //preload tombstone logic library
+	//$.getScript("js/proofGen.js"); //load proof scripts
 	
 	/**
 	*	A function to determine if a provided logic formula is provable by Natural Deduction (a tautology)
@@ -197,11 +198,41 @@ $(document).ready(function(){
 		
 		console.log(statement.table()); 
 		console.log(statement.symbols);
+		console.log(statement.variables);
 		console.log(statement.symbolsRPN);
-		console.log(statement.tree);
+		console.log(statement.tree["tree"][0]);
+		console.log("Statement: " + statement.statement);
+		var f = treeToFormula(statement.tree["tree"][0], 0);
+		console.log(f);
+		console.log("Matches with original formula: " + (f===formula))
 		console.log(JSON.stringify(statement.tree));
 		
 		return true;
+	}
+	
+	//(A∨¬A)⇒(A∨¬A)
+	//(¬B∧A)⇒((A∨¬A)⇒(A∨¬A))
+	// Translates formula tree to infixed logic string
+	// treeToFormula(formulaTree["tree"][0], 0) : usage
+	const operators  	= ["~" , "&" , "||" , "->"];
+	function treeToFormula(formulaTree, operandNo){
+		//base cases
+		if(!("children" in formulaTree)){ //if a literal
+			return formulaTree["name"];
+		}else if(formulaTree["name"] === "~"){ //only 1 child but is an operator (~)
+			return "~" + treeToFormula(formulaTree["children"][0], operandNo);
+		}
+		
+		operandNo++;
+		
+		//index 1 is left most child in tree
+		var result = treeToFormula(formulaTree["children"][1], operandNo)
+				   + formulaTree["name"]
+				   + treeToFormula(formulaTree["children"][0], operandNo);
+		
+		if(operandNo === 1) //this ensures that no redundant surrounding brackets occur
+			return result;
+		return "(" + result + ")";
 	}
 });
 
