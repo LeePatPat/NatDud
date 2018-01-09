@@ -1,7 +1,12 @@
+import {treeToFormula} from '../js/treeToFormula.js';
+import ProofValidator from '../js/proofValidator.js';
+import ProofLine from '../js/proofLine.js'; //temp testing
+
 /*
  *	JQuery to manipulate elements and validations
  */
 $(document).ready(function(){
+	console.log("we get here");
 	var formulaValid 	= false;
 	var formulaString 	= "";
 	var currentLine 	= 1; //current line of the proof
@@ -196,6 +201,10 @@ $(document).ready(function(){
 			}
 		}
 		
+		//ProofLine test
+		var pl = new ProofLine(1, 5, "(A||~A)=>(A||~A)", "impintro", 4);
+		console.log("pl test: " + pl.getLineAsString());
+
 		console.log(statement.table()); 
 		console.log(statement.symbols);
 		console.log(statement.variables);
@@ -208,31 +217,6 @@ $(document).ready(function(){
 		console.log(JSON.stringify(statement.tree));
 		
 		return true;
-	}
-	
-	//(A∨¬A)⇒(A∨¬A)
-	//(¬B∧A)⇒((A∨¬A)⇒(A∨¬A))
-	// Translates formula tree to infixed logic string
-	// treeToFormula(formulaTree["tree"][0], 0) : usage
-	const operators  	= ["~" , "&" , "||" , "->"];
-	function treeToFormula(formulaTree, operandNo){
-		//base cases
-		if(!("children" in formulaTree)){ //if a literal
-			return formulaTree["name"];
-		}else if(formulaTree["name"] === "~"){ //only 1 child but is an operator (~)
-			return "~" + treeToFormula(formulaTree["children"][0], operandNo);
-		}
-		
-		operandNo++;
-		
-		//index 1 is left most child in tree
-		var result = treeToFormula(formulaTree["children"][1], operandNo)
-				   + formulaTree["name"]
-				   + treeToFormula(formulaTree["children"][0], operandNo);
-		
-		if(operandNo === 1) //this ensures that no redundant surrounding brackets occur
-			return result;
-		return "(" + result + ")";
 	}
 });
 
