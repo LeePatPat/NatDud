@@ -58,7 +58,10 @@ class ProofValidator {
         let assumeList = []; //list of assumptions to be discharged
         let formulaList = []; //list of assumptions AND conclusions of inference rules
 
-        if(treeToFormula(this.formulaTree) !== proof[proof.length-1].getProposition());
+        if(treeToFormula(this.formulaTree) !== proof[proof.length-1].getProposition()){
+            this.problemList.push("[Proof]: the last line does not match the given formula. The final conclusion of your proof must result in the given formula being proven.");
+            return false;
+        }
 
         for(var i = 0; i < proof.length; i++){ //checks if each line is being used validly
             var currentLine = proof[i];
@@ -116,10 +119,10 @@ class ProofValidator {
         let rightProp = treeToFormula(tree["children"][0]); //B
 
         if(mainOperation !== "&"){ //first operation of proposition is SOMEHOW not &
-            problemList.push(lineNumString + "cannot apply and-Introduction to non-And operation. Use '∧' when introducing a conjunction.");
+            this.problemList.push(lineNumString + "cannot apply and-Introduction to non-And operation. Use '∧' when introducing a conjunction.");
             return false;
         }else if(deps.length > 2 || deps.length < 2){ //eg &-intro 1,2,3
-            problemList.push(lineNumString + "and-Introduction rule cannot have more or less than 2 rule justifications");
+            this.problemList.push(lineNumString + "and-Introduction rule cannot have more or less than 2 rule justifications");
             return false;
         /**
          * }else if (check if both justification values or propositions are the same){
@@ -133,7 +136,7 @@ class ProofValidator {
                 let currentProp = proof[currentJustificationLineNumber].getProposition();
 
                 if(curDepLine >= currentLine){
-                    problemList.push(lineNumString + "rule justification values are incorrent. Use values that correspond to line numbers in the proof that are being used in the and-Introduction rule");
+                    this.problemList.push(lineNumString + "rule justification values are incorrent. Use values that correspond to line numbers in the proof that are being used in the and-Introduction rule");
                     return false;
                 }else if(!validLeft && currentProp === leftProp){ //not checked left && left is currentProp
                     validLeft = true;
@@ -145,7 +148,7 @@ class ProofValidator {
                 return true;
         }
 
-        problemList.push(lineNumString + "illegal use of and-Introduction. You should only use assumptions/premises/conclusions that are already present in the proof");
+        this.problemList.push(lineNumString + "illegal use of and-Introduction. You should only use assumptions/premises/conclusions that are already present in the proof");
         return false;
     }
 }
