@@ -1,3 +1,4 @@
+//DEFAULT VALUE OF operandNo SHOULD ALWAYS BE 0 (ZERO)
 export function treeToFormula(formulaTree, operandNo){
 	//base cases
 	if(!("children" in formulaTree)){ //if a literal
