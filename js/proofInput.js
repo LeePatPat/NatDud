@@ -50,7 +50,6 @@ $(document).ready(function(){
 		}
 	});
 	
-	//bad input animation
 	$("#logic-submit").click(function(){
 		if(formulaValid == false){
 			$("#formula").val( $("#formula").val().toUpperCase() );
