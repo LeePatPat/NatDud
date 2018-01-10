@@ -5,7 +5,7 @@ class ProofLine {
      * @param {string} lineNum                  - line number
      * @param {string} proposition              - proposition result from assumption or inference rule
      * @param {string} rule                     - rule used (or assumption)
-     * @param {Array.numebr} ruleDependencies   - line numbers that given inference rule depends on
+     * @param {Array.number} ruleDependencies   - line numbers that given inference rule depends on
      */
     constructor(dependencies, lineNum, proposition, rule, ruleDependencies) {
         this.dependencies = dependencies;
@@ -26,6 +26,12 @@ class ProofLine {
      * @return {string} - proof line as a string 
      */
     getLineAsString() {
+        if(this.rule === "assume"){
+            return this.dependencies + " " +
+            "(" + this.lineNum.toString() + ")" + " " +
+            this.proposition + " " +
+            this.rule;
+        }
         return this.dependencies + " " +
             "(" + this.lineNum.toString() + ")" + " " +
             this.proposition + " " +
