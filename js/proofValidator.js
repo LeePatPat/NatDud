@@ -1,6 +1,6 @@
 import ProofLine from "../js/proofLine.js"; //may not need
 import {treeToFormula} from '../js/treeToFormula.js'; //modular function
-$.getScript("../js/tombstone.min.js"); //jQuery for PropLogic Library
+$.getScript("../tombstoneLib/tombstone.min.js"); //jQuery for PropLogic Library
 
 
 /** Class representing Proof Validator functionality */
@@ -51,6 +51,13 @@ class ProofValidator {
             var currentLine = this.proof[i];
             var currentLineProposition = currentLine.getProposition();
             var currentRule = currentLine.getRule().toLowerCase();
+            var currentRuleJustification = currentLine.getRuleDependencies();
+
+            if(currentRuleJustification <= 0){ //user has not entered any rule justifications E.g: 1 (2) AvB orIntro  [should be]   1 (2) AvB orIntro 1
+                this._addProblemToProblemList(i, "you have not entered any rule justifications for this line. E.g. andIntro needs one justiciation to show you are using that line for and-Introduction");
+                return false;
+            }
+
             switch(currentRule){
                 case "assume":
                     if(!assumeList.includes(currentLineProposition))
@@ -73,6 +80,8 @@ class ProofValidator {
                 case "impelim":
                     break;
                 case "orintro1":
+                    if(!this._orIntro1Check(currentLine, i))
+                        return false;
                     break;
                 case "orintro2":
                     break;
@@ -108,6 +117,38 @@ class ProofValidator {
 
 
     //------------------------NON-SEQUENT INFERENCE RULES--------------------------------//
+
+    /**
+     * psuedo-private function check use of orIntro1 rule is valid e.g. A | AvB
+     * @param {Object.ProofLine} currentLine - Line as ProofLine object
+     * @param {number} currentLineNumber     - line number of proof line
+     * @return {boolean} isValid
+     */
+    _orIntro1Check(currentLine, currentLineNumber){
+        let deps = this.proof[currentLineNumber].getRuleDependencies(); //4
+        let prop = this.proof[currentLineNumber].getProposition(); // AvB
+        let tree = new tombstone.Statement(prop).tree["tree"][0];
+        let mainOperation = tree["name"]; //"||"
+        let leftProp  = treeToFormula(tree["children"][1], 0); //A
+
+        if(mainOperation !== "||"){ //first operation of proposition is SOMEHOW not ||
+            this._addProblemToProblemList(currentLineNumber, "cannot apply orIntro2 to non-Or operation. Use '∨' when introducing a disjunction.");
+            return false;
+        }else if(deps.length > 1 || deps.length < 1){ //eg orIntro 1,2,3
+            this._addProblemToProblemList(currentLineNumber, "orIntro1 rule can only have one rule justification");
+            return false;
+        }else if(deps[0] >= currentLine.getLineNum()){ //justification values are beyond the current line number in proof
+            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            return false;
+        }else{ //operation is disjunction && there is 1 justification value: check if left symbol === justification line symbol
+            let justificationProp = this.proof[deps[0] - 1].getProposition();
+            if(leftProp !== justificationProp){
+                this._addProblemToProblemList(currentLineNumber, "you have used orIntro1 incorrectly. orIntro1 introduces a proposition to the right of the 'OR' symbol: e.g. A | AvB. Perhaps try orIntro2 instead.");
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * psuedo-private function check use of andElim1 rule is valid E.g: andElim1(A & B) concludes to A
@@ -216,6 +257,12 @@ class ProofValidator {
             return true;
         }
     }
+
+
+
+
+
+    //----------------------LOCAL FUNCTIONS---------------------------------------------//
 
     /**
      * psuedo-private function to add problem string to problemList
