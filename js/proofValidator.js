@@ -8,7 +8,7 @@ class ProofValidator {
 	/**
 	 * construct validation of given proof a proof is valid iff all assumptions are discharged
      * @param {Array.Array+} proofTree  - Tree form of original logic formula
-     * @param {Array.ProofLine} proof   - Proof as data where each line is of ProofLife class
+     * @param {Array.ProofLine} proof   - Proof as data where each line is of ProofLine class
 	 */
     constructor(formulaTree, proof) {
         this.problemList = []; //list of wrong-doings in proof
@@ -93,10 +93,21 @@ class ProofValidator {
          * TODO additional checking:
          *  - Check assumptions are discharged
          *  - Assumption dependencies on each line
+         *  - Check for any unused lines in proof
          */
 
         return true; //all assumptions discharged and use of rules are valid; proof is valid
     }
+
+    //------------------------SEQUENT INFERENCE RULES------------------------------------//
+
+
+
+
+
+
+
+    //------------------------NON-SEQUENT INFERENCE RULES--------------------------------//
 
     /**
      * psuedo-private function check use of andElim1 rule is valid E.g: andElim1(A & B) concludes to A
@@ -133,14 +144,14 @@ class ProofValidator {
     }
 
     /**
-     * psuedo-private function check use of andElim2 rule is valid E.g: andElim1(A & B) concludes to B
+     * psuedo-private function check use of andElim2 rule is valid E.g: andElim2(A & B) concludes to B
      * @param {Object.ProofLine} currentLine - Line as ProofLine object
      * @param {number} currentLineNumber     - line number of proof line
      * @return {boolean} isValid
      */
     _andElim2Check(currentLine, currentLineNumber){
         let deps = currentLine.getRuleDependencies(); //3
-        let prop = currentLine.getProposition(); //"A"
+        let prop = currentLine.getProposition(); //"B"
 
         if(deps.length > 1 || deps.length < 1){
             this._addProblemToProblemList(currentLineNumber, "andElim2 cannot be justified by more or less than one line in the proof. Use example: andElim2 4");
@@ -150,7 +161,7 @@ class ProofValidator {
             return false;
         }
 
-        let depLine = this.proof[deps[0]];
+        let depLine = this.proof[deps[0]-1];
         let depProp = depLine.getProposition(); //A&B
         let depTree = new tombstone.Statement(depProp).tree["tree"][0];
         let depTreeRightProposition  = depTree["children"][0]; //A&B gives B
@@ -159,8 +170,8 @@ class ProofValidator {
         if(depOperation !== "&"){
             this._addProblemToProblemList(currentLineNumber, "you are attempting to use a line number in your rule justification that does not contain a conjunction.");
             return false;
-        }else if(treeToFormula(depTreeLeftProposition) !== prop){ //line in proof doesn't match with justification line  
-            this._addProblemToProblemList(currentLineNumber, "you have used andElim2 incorrectly. This line does not match with the left side of the & operation of the rule justification line.");
+        }else if(treeToFormula(depTreeRightProposition) !== prop){ //line in proof doesn't match with justification line  
+            this._addProblemToProblemList(currentLineNumber, "you have used andElim2 incorrectly. This line does not match with the left side of the & operation of the rule justification line. Perhaps using the andElim1 rule will resolve this issue.");
             return false;
         }
         return true;
