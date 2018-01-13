@@ -1,12 +1,13 @@
 //DEFAULT VALUE OF operandNo SHOULD ALWAYS BE 0 (ZERO)
 export function treeToFormula(formulaTree, operandNo){
 	//base cases
-	if(!("children" in formulaTree)){ //if a literal
+	if(!("children" in formulaTree)) //if a literal
 		return formulaTree["name"];
-	}else if(formulaTree["name"] === "~"){ //only 1 child but is an operator (~)
+	else if(formulaTree["name"] === "~" && (formulaTree["children"][0]["name"] === "->" || formulaTree["children"][0]["name"] === "&" || formulaTree["children"][0]["name"] === "||" ) ) //child is operator
+		return "~" + "(" + treeToFormula(formulaTree["children"][0], operandNo) + ")";
+	else if(formulaTree["name"] === "~" && formulaTree["children"].length === 1) //child is ~ or literal
 		return "~" + treeToFormula(formulaTree["children"][0], operandNo);
-	}
-	
+		
 	operandNo++;
 	
 	//index 1 is left most child in tree
