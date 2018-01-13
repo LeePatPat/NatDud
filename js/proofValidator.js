@@ -84,6 +84,8 @@ class ProofValidator {
                         return false;
                     break;
                 case "orintro2":
+                    if(!this._orIntro2Check(currentLine, i))
+                        return false;
                     break;
                 case "orelim":
                     break;
@@ -144,6 +146,38 @@ class ProofValidator {
             let justificationProp = this.proof[deps[0] - 1].getProposition();
             if(leftProp !== justificationProp){
                 this._addProblemToProblemList(currentLineNumber, "you have used orIntro1 incorrectly. orIntro1 introduces a proposition to the right of the 'OR' symbol: e.g. A | AvB. Perhaps try orIntro2 instead.");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * psuedo-private function check use of orIntro2 rule is valid e.g. B | AvB
+     * @param {Object.ProofLine} currentLine - Line as ProofLine object
+     * @param {number} currentLineNumber     - line number of proof line
+     * @return {boolean} isValid
+     */
+    _orIntro2Check(currentLine, currentLineNumber){
+        let deps = this.proof[currentLineNumber].getRuleDependencies(); //4
+        let prop = this.proof[currentLineNumber].getProposition(); // AvB
+        let tree = new tombstone.Statement(prop).tree["tree"][0];
+        let mainOperation = tree["name"]; //"||"
+        let rightProp  = treeToFormula(tree["children"][0], 0); //B
+
+        if(mainOperation !== "||"){ //first operation of proposition is SOMEHOW not ||
+            this._addProblemToProblemList(currentLineNumber, "cannot apply orIntro2 to non-Or operation. Use '∨' when introducing a disjunction.");
+            return false;
+        }else if(deps.length > 1 || deps.length < 1){ //eg orIntro 1,2,3
+            this._addProblemToProblemList(currentLineNumber, "orIntro2 rule can only have one rule justification");
+            return false;
+        }else if(deps[0] >= currentLine.getLineNum()){ //justification values are beyond the current line number in proof
+            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            return false;
+        }else{ //operation is disjunction && there is 1 justification value: check if left symbol === justification line symbol
+            let justificationProp = this.proof[deps[0] - 1].getProposition();
+            if(rightProp !== justificationProp){
+                this._addProblemToProblemList(currentLineNumber, "you have used orIntro2 incorrectly. orIntro2 introduces a proposition to the left of the 'OR' symbol: e.g. B | AvB. Perhaps try orIntro1 instead.");
                 return false;
             }
         }
