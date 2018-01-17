@@ -1,0 +1,54 @@
+<html>
+    <head>
+        <title>test_framework</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<!-- jQuery UI (used for animation and manipulation of UI) -->
+		<script src="https://code.jquery.com/ui/1.9.1/jquery-ui.js" type="text/javascript"></script>
+    </head>
+    <body>
+
+    	<p>Symbols: &amp; || -> ~</p>
+    	<p>For rule dependencies: enter "-" for the use of assumption</p>
+
+    	<div id="proofDiv">
+			<textarea id="proofProps" placeholder="ass/conc/prems" cols="15" rows="10"></textarea>
+			<textarea id="proofRules" placeholder="rules" cols="15" rows="10"></textarea>
+			<textarea id="proofRuleDeps" placeholder="rule deps 1,2" cols="15" rows="10"></textarea>
+		</div>
+
+		<div id="ruleAddDiv">
+			<select id="proof-rule-dropdown" class="selectpicker form-control">
+				<option value="assume">assume</option>
+				<option value="andIntro">∧-intro</option>
+				<option value="andElim1">∧-elim1</option>
+				<option value="andElim2">∧-elim2</option>
+				<option value="impIntro">⇒-intro</option>
+				<option value="impElim">⇒-elim</option>
+				<option value="orIntro1">∨-intro1</option>
+				<option value="orIntro2">∨-intro2</option>
+				<option value="orElim">∨-elim</option>
+				<option value="notIntro">¬-intro</option>
+				<option value="notElim">¬-elim</option>
+				<option value="raa">RAA</option>
+				<option value="efq">EFQ (⊥-elim)</option>
+			</select>
+
+			<button id="btnAddRule">Add Rule</button>
+		</div>
+
+		<div id="checkBtn">
+			<button id="btnCheck">check</button>
+			<p id="errorMsg"></p>
+		</div>
+
+		<div>
+			<pre id="proofString">{ Proof will appear here }</pre>
+			<button id="btnValidateProof" disabled>Validate</button>
+			<button id="btnValidateCancel" disabled>Cancel</button>
+		</div>
+    </body>
+    
+    <script type="module" src="test_framework.js"></script>
+</html>
