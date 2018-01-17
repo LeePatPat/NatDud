@@ -41,4 +41,4 @@ class ProofLine {
 }
 
 //import ProofLine from "js/proofLine.js";
-export default ProofLine
+module.exports = ProofLine;

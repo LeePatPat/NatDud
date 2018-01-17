@@ -1,6 +1,8 @@
-import ProofLine from "../js/proofLine.js"; //may not need
-import {treeToFormula} from '../js/treeToFormula.js'; //modular function
-$.getScript("../tombstoneLib/tombstone.min.js"); //jQuery for PropLogic Library
+//import ProofLine from "../js/proofLine.js"; //may not need
+//import {treeToFormula} from '../js/treeToFormula.js'; //modular function
+var treeToFormula = require('./treeToFormula.js');
+var ProofLine = require('./proofLine.js');
+var tombstone = require('../tombstoneLib/tombstone.min.js');
 
 
 /** Class representing Proof Validator functionality */
@@ -310,4 +312,4 @@ class ProofValidator {
 
 //import ProofValidator from "proofValidator.js";
 //var pv = new ProofValidator(formulaTree, proofData);
-export default ProofValidator
+module.exports = ProofValidator;

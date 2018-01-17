@@ -1,5 +1,5 @@
 //DEFAULT VALUE OF operandNo SHOULD ALWAYS BE 0 (ZERO)
-export function treeToFormula(formulaTree, operandNo){
+function treeToFormula(formulaTree, operandNo){
 	//base cases
 	if(!("children" in formulaTree)) //if a literal
 		return formulaTree["name"];
@@ -19,3 +19,9 @@ export function treeToFormula(formulaTree, operandNo){
 		return result;
 	return "(" + result + ")";
 }
+
+
+//usage
+//var t2f = require("./treeToFormula.js");
+//t2f(tree, 0);
+module.exports = treeToFormula;
