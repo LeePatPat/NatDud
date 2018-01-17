@@ -88,24 +88,27 @@ $(document).ready(function(){
 				
 				//add order-list to proof-area
 				var $proofList = $(' <div id="proof-list"></div> ');
-				var $proofListOlObject = $(' <ol id="proof-list-ol-object"></ol> ');
 				$("#proof-area").append($proofList);
-				$("#proof-list").append($proofListOlObject);
 				$("#proof-list").css("padding-top" , "1%");
 				
 				//add inputs fields to proof-area
 				var $proofFormulaInputGroup = $(' <div id="proof-formula-input-group" class="input-group form-group-sm"></div> '); //#div for containing the input buttons and fields
-				var 	$lineFormulaInput = $(' <input id="proof-formula-input" class="form-control" placeholder="Proof Line (use above symbols & F for falsum)"> '); //#button for entering line of proof
+				var 	$lineDependenciesInput = $(' <input id="proof-dependencies-input" class="form-control" placeholder="Deps." title="Dependencies: e.g. 1,2"> '); //#input field for dependency numbers
+				var 	$lineFormulaInput = $(' <input id="proof-formula-input" class="form-control" placeholder="Proof Line (use symbols & F for ⊥)" title="Proposition: use symbols above and F for falsum"> '); //#button for entering line of proof
 				var 	$lineRuleInput = $(' <select id="proof-rule-input" class="selectpicker form-control"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select>');
-				var 	$lineDependencyInput = $(' <input id="proof-dependency-input" class="form-control" placeholder="Deps."> '); //#input field for dependency numbers
+				var 	$lineRuleJustificationInput = $(' <input id="proof-rule-justification-input" class="form-control" placeholder="Justifications" title="Rule justifications: e.g. 1,2"> '); //#input field for justification numbers
+
 				$("#proof-area").append($proofFormulaInputGroup);
+				$("#proof-formula-input-group").append($lineDependenciesInput);
 				$("#proof-formula-input-group").append($lineFormulaInput);
 				$("#proof-formula-input-group").append($lineRuleInput);
-				$("#proof-formula-input-group").append($lineDependencyInput);
-				$("#proof-formula-input").css("width","50%"); //CSS for input fields
+				$("#proof-formula-input-group").append($lineRuleJustificationInput);
+				$("#proof-dependencies-input").css("width","15%"); //CSS for input fields
+				$("#proof-formula-input").css("width","50%");
 				$("#proof-rule-input").css("width","20%");
-				$("#proof-dependency-input").css("width","20%");
-				$("#proof-formula-input-group").css("padding-left","10%");
+				$("#proof-rule-justification-input").css("width","15%");
+				$("#proof-formula-input-group").css("padding-left","5%");
+				$("#proof-formula-input-group").css("padding-right","5%");
 				$("#proof-formula-input-group").css("padding-bottom","1%");
 				$("#proof-formula-input-group").css("display" , "inline-block");//this fixed overflowing problem
 				
@@ -129,28 +132,66 @@ $(document).ready(function(){
 	});
 	
 	$("body").on("click", "#proof-add", function(){
-		if(!($("#proof-formula-input").val().trim().length == 0)){ //if logic inputbox is not empty
-			var currentLineId = "proof-list-li-object-"+(currentLine);
-			
-			var $proofListLiObject = $(' <li id="'+currentLineId+'" style="padding-left: 5%"></li> ');
-			$("#proof-list-ol-object").append($proofListLiObject);
-			
-			var proofLineInputValue = $("#proof-formula-input").val();
-			var proofLineRuleDepValue = $("#proof-rule-input option:selected").text() + " " + $("#proof-dependency-input").val();
-			var $objectToAddToList = $(' <span id="span-proof-line-'+currentLine+'">'+proofLineInputValue+'</span>' + 
-									   ' <span id="span-proof-ruledep-'+currentLine+'">'+proofLineRuleDepValue+'</span>');
-			
-			$("#"+currentLineId).append($objectToAddToList);
-			$("#span-proof-ruledep-" + currentLine).css("float" , "right");
-			$("#proof-list-ol-object").css("padding-right", "5%");
-			$("#proof-list-ol-object").css("padding-top", "5%");
+		var formula = $("#proof-formula-input").val().toUpperCase();
+		formula = formula.replace(new RegExp("⇒", "g"), "->");
+		formula = formula.replace(new RegExp("∧", "g"), "&");
+		formula = formula.replace(new RegExp("∨", "g"), "||");
+		formula = formula.replace(new RegExp("¬", "g"), "~");
+		formula = formula.replace(new RegExp("⊥", "g"), "F");
+		formula = formula.replace(new RegExp("f", "g"), "F");
+
+		var statement = null;
+		try {
+			statement = new tombstone.Statement( formula ); //check if attempted add on proof is wff
+		}catch (e){
+			return false;
+		}
+
+		if(!($("#proof-formula-input").val().trim().length === 0)){ //if logic inputbox is not empty && wff
+
+			var currentLineIdDivString = "proof-line-number-"+currentLine;
+			var currentLineDependencies = $('#proof-dependencies-input').val();
+			var currentLineProposition  = $('#proof-formula-input').val();
+			var currentLineRule 		= $('#proof-rule-input').val();
+			var currentLineRuleJusts	= $('#proof-rule-justification-input').val();
+
+
+			var $proofLine = $("<div id="+currentLineIdDivString+"></div>");
+			var 	$proofLineDependenciesSpan = $("<span id='span-proof-dependencies-"+currentLine+"'>"+currentLineDependencies+"</span>");
+			var 	$proofLineNumberSpan 	   = $("<span id='span-proof-number-"+currentLine+"'>("+currentLine+")</span>");
+			var 	$proofLinePropositionSpan  = $("<span id='span-proof-proposition-"+currentLine+"'>"+currentLineProposition+"</span>");
+			var 	$proofLineJustsSpan 	   = $("<span id='span-proof-justifications-"+currentLine+"'>"+currentLineRuleJusts+"</span>");
+			var 	$proofLineRuleSpan 		   = $("<span id='span-proof-rule-"+currentLine+"'>"+currentLineRule+"</span>");
+
+			$('#proof-list').append($proofLine);
+			$("#"+currentLineIdDivString).append($proofLineDependenciesSpan);
+			$("#"+currentLineIdDivString).append($proofLineNumberSpan);
+			$("#"+currentLineIdDivString).append($proofLinePropositionSpan);
+			$("#"+currentLineIdDivString).append($proofLineJustsSpan);
+			$("#"+currentLineIdDivString).append($proofLineRuleSpan);
+			$("#"+currentLineIdDivString).css("margin-right", "15%");
+
+			$('#proof-list').css('padding-left', '2%');
+			$('#proof-list').css('padding-right', '2%');
+
+			$("#span-proof-dependencies-"+currentLine).css("padding-left", "8%");
+			$("#span-proof-dependencies-"+currentLine).css("margin-right", "8%");
+
+			$("#span-proof-number-"+currentLine).css("padding-right", "5%");
+
+			//proposition in here, if need be
+
+			$("#span-proof-rule-"+currentLine).css("float", "right");
+			$("#span-proof-rule-"+currentLine).css("padding-right", "1%");
+
+			$("#span-proof-justifications-"+currentLine).css("float", "right");
 			
 			currentLine++;
 		}
 	});
 	
 	$("body").on("click", "#proof-remove", function(){
-		var currentLineId = "proof-list-li-object-" + (currentLine-1);
+		var currentLineId = "proof-line-number-" + (currentLine-1);
 		$("#" + currentLineId).remove();
 		
 		if(--currentLine === 0) currentLine = 1;
@@ -166,6 +207,11 @@ $(document).ready(function(){
 	});
 	
 	
+	///////////////////////////////////////////////////////////////////////////////
+	////////////////FUNCTIONS//////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 *	A function to determine if a provided logic formula is provable by Natural Deduction (a tautology)
 	 *	@param {String} formula - User's formula input
@@ -218,19 +264,19 @@ $(document).ready(function(){
 		//TESTING CODE
 
 		//ProofLine test
-		var pl = new ProofLine(1, 5, "(A||~A)=>(A||~A)", "impintro", 4);
-		console.log("pl test: " + pl.getLineAsString());
+		// var pl = new ProofLine(1, 5, "(A||~A)=>(A||~A)", "impintro", 4);
+		// console.log("pl test: " + pl.getLineAsString());
 
-		console.log(statement.table()); 
-		console.log(statement.symbols);
-		console.log(statement.variables);
-		console.log(statement.symbolsRPN);
-		console.log(statement.tree["tree"][0]);
-		console.log("Statement: " + statement.statement);
-		var f = treeToFormula(statement.tree["tree"][0], 0);
-		console.log(f);
-		console.log("Matches with original formula: " + (f===formula))
-		console.log(JSON.stringify(statement.tree));
+		// console.log(statement.table()); 
+		// console.log(statement.symbols);
+		// console.log(statement.variables);
+		// console.log(statement.symbolsRPN);
+		// console.log(statement.tree["tree"][0]);
+		// console.log("Statement: " + statement.statement);
+		// var f = treeToFormula(statement.tree["tree"][0], 0);
+		// console.log(f);
+		// console.log("Matches with original formula: " + (f===formula))
+		// console.log(JSON.stringify(statement.tree));
 		
 		return true;
 	}
