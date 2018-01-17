@@ -126,6 +126,8 @@ class ProofValidator {
                 case "impintro":
                     break;
                 case "impelim":
+                    if(!this._impElimCheck(currentLine, i))
+                        return false;
                     break;
                 case "orintro1":
                     if(!this._orIntro1Check(currentLine, i))
@@ -169,14 +171,58 @@ class ProofValidator {
     //------------------------NON-SEQUENT INFERENCE RULES--------------------------------//
 
     /**
+     * psuedo-private function check use of impElim1 rule is valid e.g. A  A->B | B
+     * @param {Object.ProofLine} currentLine - Line as ProofLine object
+     * @param {number} currentLineNumber     - line number of proof line
+     * @return {boolean} isValid
+     */
+    _impElimCheck(currentLine, currentLineNumber){
+        let deps = currentLine.getRuleDependencies(); //3,2
+        let prop = currentLine.getProposition(); // B
+
+        if(deps.length < 2 || deps.length > 2){//not 2 rule justifications
+            this._addProblemToProblemList(currentLineNumber, "impElim can only have 2 rule justifications.");
+            return false;
+        }else if(deps[0] >= currentLineNumber+1 || deps[1] >= currentLineNumber+1){ //references a line after this line in the proof (cannot occur)
+            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            return false;
+        }
+
+        let dep2line = this.proof[deps[1] - 1]; //A->B
+        let dep2prop = dep2line.getProposition();
+        let dep2tree = new tombstone.Statement(dep2prop).tree["tree"][0];
+        let dep2op   = dep2tree["name"]; //->
+
+        if(dep2op !== "->"){
+            this._addProblemToProblemList(currentLineNumber, "You are attempting to use impElim on a non-implication operation. Rule usage: A  A->B | B");
+            return false;
+        }
+
+        let dep2prop1 = treeToFormula(dep2tree["children"][1], 0); //A
+        let dep2prop2 = treeToFormula(dep2tree["children"][0], 0); //B
+        let dep1      = this.proof[deps[0] - 1]; //A
+        let dep1prop  = dep1.getProposition();
+
+        if(dep1prop !== dep2prop1){ //A !== A
+            this._addProblemToProblemList(currentLineNumber, "your 1st justification does not match the left-side of the implication in your 2nd justification. Rule usage: A  A->B | B");
+            return false;   
+        }else if(prop !== dep2prop2){ //B !== B
+            this._addProblemToProblemList(currentLineNumber, "this line's proposition does not match the right-side of the implication in your 1st justification. Rule usage: A  A->B | B");
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * psuedo-private function check use of orIntro1 rule is valid e.g. A | AvB
      * @param {Object.ProofLine} currentLine - Line as ProofLine object
      * @param {number} currentLineNumber     - line number of proof line
      * @return {boolean} isValid
      */
     _orIntro1Check(currentLine, currentLineNumber){
-        let deps = this.proof[currentLineNumber].getRuleDependencies(); //4
-        let prop = this.proof[currentLineNumber].getProposition(); // AvB
+        let deps = currentLine.getRuleDependencies(); //4
+        let prop = currentLine.getProposition(); // AvB
         let tree = new tombstone.Statement(prop).tree["tree"][0];
         let mainOperation = tree["name"]; //"||"
         let leftProp  = treeToFormula(tree["children"][1], 0); //A
@@ -207,8 +253,8 @@ class ProofValidator {
      * @return {boolean} isValid
      */
     _orIntro2Check(currentLine, currentLineNumber){
-        let deps = this.proof[currentLineNumber].getRuleDependencies(); //4
-        let prop = this.proof[currentLineNumber].getProposition(); // AvB
+        let deps = currentLine.getRuleDependencies(); //4
+        let prop = currentLine.getProposition(); // AvB
         let tree = new tombstone.Statement(prop).tree["tree"][0];
         let mainOperation = tree["name"]; //"||"
         let rightProp  = treeToFormula(tree["children"][0], 0); //B
@@ -307,8 +353,8 @@ class ProofValidator {
      * @return {boolean} isValid
      */
     _andIntroCheck(currentLine, currentLineNumber){
-        let deps = this.proof[currentLineNumber].getRuleDependencies();
-        let prop = this.proof[currentLineNumber].getProposition(); // A&B
+        let deps = currentLine.getRuleDependencies();
+        let prop = currentLine.getProposition(); // A&B
         let tree = new tombstone.Statement(prop).tree["tree"][0];
         let mainOperation = tree["name"]; //"&"
         let leftProp  = treeToFormula(tree["children"][1], 0); //A
@@ -359,7 +405,17 @@ class ProofValidator {
 //import ProofValidator from "proofValidator.js";
 //var pv = new ProofValidator(formulaTree, proofData);
 module.exports = ProofValidator;
-},{"../tombstoneLib/tombstone.min.js":6,"./proofLine.js":1,"./treeToFormula.js":3}],3:[function(require,module,exports){
+},{"../tombstoneLib/tombstone.min.js":7,"./proofLine.js":1,"./treeToFormula.js":4}],3:[function(require,module,exports){
+!function(t,e){"object"==typeof exports&&"object"==typeof module?module.exports=e():"function"==typeof define&&define.amd?define("tombstone",[],e):"object"==typeof exports?exports.tombstone=e():t.tombstone=e()}(this,function(){return function(t){function e(n){if(r[n])return r[n].exports;var o=r[n]={exports:{},id:n,loaded:!1};return t[n].call(o.exports,o,o.exports,e),o.loaded=!0,o.exports}var r={};return e.m=t,e.c=r,e.p="",e(0)}([function(t,e,r){t.exports=r(1)},function(t,e,r){"use strict";function n(t){return t&&t.__esModule?t:{"default":t}}Object.defineProperty(e,"__esModule",{value:!0}),e.Statement=void 0;var o=r(2),a=n(o);e.Statement=a["default"]},function(t,e,r){"use strict";function n(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}function o(t){var e=!1,r=[],n=[],o=!0,a=!1,i=void 0;try{for(var u,s=t[Symbol.iterator]();!(o=(u=s.next()).done);o=!0){var f=u.value;if(f.match(/^[a-z]{1}$/i))r.push(f);else if(")"===f){for(e=!1;!e&&"("!==n[n.length-1];)r.push(n.pop()),e="("===n[n.length-1];n.pop()}else{for(;l(f,n[n.length-1]);)r.push(n.pop());n.push(f)}}}catch(c){a=!0,i=c}finally{try{!o&&s["return"]&&s["return"]()}finally{if(a)throw i}}return r.push.apply(r,n.reverse()),r}function a(t){var e=/^[a-z()]{1}$/i,r=0,n=0,o=null,a=null,i=null,u=!1,l=!1,s=null;if(0===t.length)return"no symbols!";for(var f=0;f<t.length;++f)o=t[f],i=void 0===t[f+1]?"":t[f+1],a=void 0===t[f-1]?"":t[f-1],u=["~","&","||","->","<->"].includes(o),u||o.match(e)||(s="unknown symbol!"),"("===o?r+=1:")"===o?n+=1:u&&l&&"~"!==o?s="double operators!":u&&"~"!==o?a.match(e)&&("~"===i||i.match(e))||(s="missing operand!"):"~"===o&&(i.match(e)||(s="missing operand!")),l=u;return r!==n?s="unbalanced parentheses!":t.length===r+n&&(s="no symbols!"),s}function i(t){var e=["(",")","->","&","||","~","<->"],r=t.split(" "),n=0,o=null,a=null,i=[],u=!0,l=!1,s=void 0;try{for(var f,c=r[Symbol.iterator]();!(u=(f=c.next()).done);u=!0){var h=f.value;if(!h.match(/^[a-z]+$/i)&&e.indexOf(h)<0)for(n=0;n<h.length;)o=h.slice(n,n+2),a=h.slice(n,n+3),"<->"===a?(i.push(a),n+=3):"->"===o||"||"===o?(i.push(o),n+=2):(i.push(h.charAt(n)),n+=1);else i.push(h)}}catch(v){l=!0,s=v}finally{try{!u&&c["return"]&&c["return"]()}finally{if(l)throw s}}return i}function u(t){var e=i(t),r=[],n=!0,o=!1,a=void 0;try{for(var u,l=e[Symbol.iterator]();!(n=(u=l.next()).done);n=!0){var s=u.value;s.match(/^[a-z]+$/i)&&r.push(s)}}catch(f){o=!0,a=f}finally{try{!n&&l["return"]&&l["return"]()}finally{if(o)throw a}}return r}function l(t,e){var r=["~","&","||","->","<->"];return void 0!==e&&"("!==e&&r.indexOf(t)>r.indexOf(e)}function s(t,e){var r=[],n=!0,o=!1,a=void 0;try{for(var i,u=t[Symbol.iterator]();!(n=(i=u.next()).done);n=!0){var l=i.value;["(",")","->","&","||","<->","~"].includes(l)?r.push(l):r.push(e[l])}}catch(s){o=!0,a=s}finally{try{!n&&u["return"]&&u["return"]()}finally{if(o)throw a}}return r}function f(t,e){switch(t){case"~":return!e[0];case"&":return e[0]&&e[1];case"||":return e[0]||e[1];case"->":return!e[1]||e[0];case"<->":return e[0]===e[1]}}function c(t){var e=[],r=null,n=0,o=!0,a=!1,i=void 0;try{for(var u,l=t[Symbol.iterator]();!(o=(u=l.next()).done);o=!0){var s=u.value;s.match(/^[a-z]{1}$/i)?e.push({name:s}):(r=e.pop(),"~"===s?e.push({name:s,children:[r]}):e.push({name:s,children:[r,e.pop()]})),n+=1}}catch(f){a=!0,i=f}finally{try{!o&&l["return"]&&l["return"]()}finally{if(a)throw i}}return{tree:e,size:n}}Object.defineProperty(e,"__esModule",{value:!0});var h=function(){function t(t,e){for(var r=0;r<e.length;r++){var n=e[r];n.enumerable=n.enumerable||!1,n.configurable=!0,"value"in n&&(n.writable=!0),Object.defineProperty(t,n.key,n)}}return function(e,r,n){return r&&t(e.prototype,r),n&&t(e,n),e}}(),v=r(3),p=function(){function t(e){n(this,t),this.symbols=i(e);var r=a(this.symbols);if(r)throw new Error(r);this.statement=e,this.variables=u(this.statement),this.symbolsRPN=o(this.symbols),this.tree=c(this.symbolsRPN)}return h(t,[{key:"evaluate",value:function(t){var e=s(this.symbolsRPN,t),r=[],n=[],o=!0,a=!1,i=void 0;try{for(var u,l=e[Symbol.iterator]();!(o=(u=l.next()).done);o=!0){var c=u.value;"boolean"==typeof c?r.push(c):(n.push(r.pop()),"~"!==c&&n.push(r.pop()),r.push(f(c,n)),n=[])}}catch(h){a=!0,i=h}finally{try{!o&&l["return"]&&l["return"]()}finally{if(a)throw i}}return r[0]}},{key:"variables",value:function(){return this.variables}},{key:"symbols",value:function(){return this.symbols}},{key:"table",value:function(){return v(this,"Markdown")}}]),t}();e["default"]=p,t.exports=e["default"]},function(t,e,r){"use strict";function n(t,e){return e.length===t?[e]:n(t,e.concat(!0)).concat(n(t,e.concat(!1)))}function o(t){for(var e=t.length,r=n(e,[]),o=r.length,a=[],i={},u=0;u<o;++u){i={};for(var l=0;l<e;++l)i[t[l]]=r[u][l];a.push(i)}return a}function a(t){var e={};e.statement=t.statement,e.variables=t.variables,e.rows=o(e.variables);for(var r=0;r<e.rows.length;++r)e.rows[r].eval=t.evaluate(e.rows[r]);return e}function i(t){var e=[],r=[],n=t.variables.slice();n.push(t.statement.replace(/\|/g,"&#124;")),e.push(n);for(var o=0;o<t.rows.length;++o){r=[];for(var a=0;a<t.variables.length;++a)r.push(t.rows[o][t.variables[a]]);r.push(t.rows[o].eval),e.push(r)}return l(e,{align:"c"})}function u(t,e){var r=a(t),n=e.toLowerCase();switch(n){case"markdown":return i(r)}}Object.defineProperty(e,"__esModule",{value:!0});var l=r(4);e["default"]=u,t.exports=e["default"]},function(t,e){/**
+	 * @author Titus Wormer
+	 * @copyright 2014 Titus Wormer
+	 * @license MIT
+	 * @module markdown-table
+	 * @fileoverview Count syllables in English words.
+	 */
+"use strict";function r(t,e){var r,u,g,w,x,j,S,k,O,_,P,z,$=e||{},M=$.delimiter,A=$.start,C=$.end,L=$.align,N=$.stringLength||n,R=0,E=-1,T=t.length,q=[];for(L=L?L.concat():[],null!==M&&void 0!==M||(M=m+y+m),null!==A&&void 0!==A||(A=y+m),null!==C&&void 0!==C||(C=m+y);++E<T;)for(w=t[E],j=-1,w.length>R&&(R=w.length);++j<R;)S=w[j]?a(w[j]):null,q[j]||(q[j]=3),S>q[j]&&(q[j]=S);for("string"==typeof L&&(L=o(R,L).split("")),j=-1;++j<R;)r=L[j],"string"==typeof r&&(r=r.charAt(0).toLowerCase()),v.indexOf(r)===-1&&(r=h),L[j]=r;for(E=-1,g=[];++E<T;){for(w=t[E],j=-1,x=[];++j<R;)O=w[j],O=null===O||void 0===O?"":String(O),L[j]===c?(S=a(O),k=q[j]+(i.test(O)?0:1)-(N(O)-S),x[j]=O+o(k-1)):x[j]=O;g[E]=x}for(q=[],E=-1;++E<T;)for(x=g[E],j=-1;++j<R;)O=x[j],q[j]||(q[j]=3),k=N(O),k>q[j]&&(q[j]=k);for(E=-1;++E<T;){for(x=g[E],j=-1;++j<R;)O=x[j],S=q[j]-(N(O)||0),_=o(S),L[j]===s||L[j]===c?O=_+O:L[j]===f?(S/=2,S%1===0?(P=S,z=S):(P=S+.5,z=S-.5),O=o(P)+O+o(z)):O+=_,x[j]=O;g[E]=x.join(M)}if($.rule!==!1){for(j=-1,u=[];++j<R;)r=L[j],O=r===s||r===h?d:p,O+=o(q[j]-2,d),O+=r!==l&&r!==h?p:d,u[j]=O;g.splice(1,0,u.join(M))}return A+g.join(C+b+A)+C}function n(t){return String(t).length}function o(t,e){return Array(t+1).join(e||m)}function a(t){var e=u.exec(t);return e?e.index+1:t.length}t.exports=r;var i=/\./,u=/\.[^.]*$/,l="l",s="r",f="c",c=".",h="",v=[l,s,f,c,h],p=":",d="-",y="|",m=" ",b="\n"}])});
+
+},{}],4:[function(require,module,exports){
 //DEFAULT VALUE OF operandNo SHOULD ALWAYS BE 0 (ZERO)
 function treeToFormula(formulaTree, operandNo){
 	//base cases
@@ -387,7 +443,7 @@ function treeToFormula(formulaTree, operandNo){
 //var t2f = require("./treeToFormula.js");
 //t2f(tree, 0);
 module.exports = treeToFormula;
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.2.1
  * https://jquery.com/
@@ -10642,248 +10698,116 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],5:[function(require,module,exports){
-// import {treeToFormula} from '../js/treeToFormula.js';
-// import ProofValidator from '../js/proofValidator.js';
-// import ProofLine from '../js/proofLine.js'; //temp testing
-var treeToFormula = require('./js/treeToFormula.js');
-var ProofLine = require('./js/proofLine.js');
-var tombstone = require('./tombstoneLib/tombstone.min.js');
-var ProofValidator = require('./js/proofValidator.js');
+},{}],6:[function(require,module,exports){
+var ProofValidator = require('../js/proofValidator.js');
+var ProofLine = require('../js/proofLine.js');
+var tombstone = require('../js/tombstone.min.js');
 var $ = require('jquery');
+
 /*
  *	JQuery to manipulate elements and validations
  */
 $(document).ready(function(){
-	console.log("we get here");
-	var formulaValid 	= false;
-	var formulaString 	= "";
-	var currentLine 	= 1; //current line of the proof
-	var message 		= ""; //error message to be displayed
-	
-	//logic button actions
-	$("#logic-imply").click(function(){
-		if(!formulaValid){
-			$("#formula").val($("#formula").val() + "⇒");
-			$("#formula").focus();
+	/**GLOBALS*/
+	var isFirstLine = function(){return $("#proofRules").val() === ""}
+	var proof = [];
+	var formula = "";
+
+	$("#btnAddRule").click(function(){
+		let ruleText = $('#proof-rule-dropdown').find(":selected").val();
+		if(!isFirstLine()){
+			if(ruleText === "assume") //add "-" automatically
+				$("#proofRuleDeps").val($("#proofRuleDeps").val() + "\n" + "-");
+			$("#proofRules").val($("#proofRules").val() + "\n" + ruleText);
 		}else{
-			$("#proof-formula-input").val($("#proof-formula-input").val() + "⇒");
-			$("#proof-formula-input").focus();
+			if(ruleText === "assume") //add "-" automatically
+				$("#proofRuleDeps").val("-");
+			$("#proofRules").val(ruleText);
 		}
 	});
-	$("#logic-and").click(function(){
-		if(!formulaValid){
-			$("#formula").val($("#formula").val() + "∧");
-			$("#formula").focus();
-		}else{
-			$("#proof-formula-input").val($("#proof-formula-input").val() + "∧");
-			$("#proof-formula-input").focus();
-		}
-	});
-	$("#logic-or").click(function(){
-		if(!formulaValid){
-			$("#formula").val($("#formula").val() + "∨");
-			$("#formula").focus();
-		}else{
-			$("#proof-formula-input").val($("#proof-formula-input").val() + "∨");
-			$("#proof-formula-input").focus();
-		}
-	});
-	$("#logic-not").click(function(){
-		if(!formulaValid){
-			$("#formula").val($("#formula").val() + "¬");
-			$("#formula").focus();
-		}else{
-			$("#proof-formula-input").val($("#proof-formula-input").val() + "¬");
-			$("#proof-formula-input").focus();
-		}
-	});
-	
-	$("#logic-submit").click(function(){
-		if(formulaValid == false){
-			$("#formula").val( $("#formula").val().toUpperCase() );
-			if(!isProvable( $("#formula").val())){ //CHANGE FOR FORMULA CHECKING
-			
-				//set input border to red and shake for 2 seconds when input is invalid
-				$("#formula").css("border", "1px solid red");
-				$("#error-message").html(message); //display error message
-				$("#error-message").css("font-size", "1rem");
-				$("#error-message").css("margin-left", "1rem");
-				$("#error-message").css("margin-right", "1rem"); 
-				setTimeout(function(){
-					$("#formula").css("border", "1px solid #cccccc");
-					$("#error-message").html("");
-				} , 2000);
-				
-			}else{
-				formulaValid = true;
-				formulaString = $("#formula").val();
-				$("#formula").prop("disabled", true); //disabled
-				$("#proof-input-area").show();
-				
-				//input is valid, show input area for user's proof
-				$("#proof-area").css("border-color" , "white");
-				$("#proof-area").css("border-style" , "solid");
-				$("#proof-area").css("border-width" , "1px");
-				$("#proof-area").css("border-radius" , "1rem 1rem 1rem 1rem");	
-				$("#proof-area").css("overflow" , "hidden");
-				$("#proof-input-area").css("margin-left" , "15%");
-				$("#proof-input-area").css("margin-right" , "15%");
-				
-				//add order-list to proof-area
-				var $proofList = $(' <div id="proof-list"></div> ');
-				var $proofListOlObject = $(' <ol id="proof-list-ol-object"></ol> ');
-				$("#proof-area").append($proofList);
-				$("#proof-list").append($proofListOlObject);
-				$("#proof-list").css("padding-top" , "1%");
-				
-				//add inputs fields to proof-area
-				var $proofFormulaInputGroup = $(' <div id="proof-formula-input-group" class="input-group form-group-sm"></div> '); //#div for containing the input buttons and fields
-				var 	$lineFormulaInput = $(' <input id="proof-formula-input" class="form-control" placeholder="Proof Line (use symbols above)"> '); //#button for entering line of proof
-				var 	$lineRuleInput = $(' <select id="proof-rule-input" class="selectpicker form-control"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select>');
-				var 	$lineDependencyInput = $(' <input id="proof-dependency-input" class="form-control" placeholder="Deps."> '); //#input field for dependency numbers
-				$("#proof-area").append($proofFormulaInputGroup);
-				$("#proof-formula-input-group").append($lineFormulaInput);
-				$("#proof-formula-input-group").append($lineRuleInput);
-				$("#proof-formula-input-group").append($lineDependencyInput);
-				$("#proof-formula-input").css("width","50%"); //CSS for input fields
-				$("#proof-rule-input").css("width","20%");
-				$("#proof-dependency-input").css("width","20%");
-				$("#proof-formula-input-group").css("padding-left","10%");
-				$("#proof-formula-input-group").css("padding-bottom","1%");
-				$("#proof-formula-input-group").css("display" , "inline-block");//this fixed overflowing problem
-				
-				//add proof buttons
-				var $addButton = $(' <button id="proof-add" class="btn btn-info">add</button> '); //#button for adding line
-				var $removeButton = $(' <button id="proof-remove" class="btn btn-info">remove</button> '); //button for last line added
-				var $checkButton = $(' <button id="proof-check" class="btn btn-success">check</button> '); //button for sending proof for checking
-				var $clearButton = $(' <button id="proof-clear" class="btn btn-danger">clear</button> '); //button for returning to the formula input
-				$("#proof-buttons").append($addButton);
-				$("#proof-buttons").append($removeButton);
-				$("#proof-buttons").append($checkButton);
-				$("#proof-buttons").append($clearButton);
-				$("#proof-buttons").css("padding-left" , "1rem");
-				$("#proof-buttons").css("padding-right" , "1rem");
-				$("#proof-buttons").css("padding-top" , "1%");
-				$("#proof-add").css("margin-right" , "1rem");
-				$("#proof-remove").css("margin-right" , "1rem");
-				$("#proof-clear").css("float" , "right");
-			}
-		}
-	});
-	
-	$("body").on("click", "#proof-add", function(){
-		if(!($("#proof-formula-input").val().trim().length == 0)){ //if logic inputbox is not empty
-			var currentLineId = "proof-list-li-object-"+(currentLine);
-			
-			var $proofListLiObject = $(' <li id="'+currentLineId+'" style="padding-left: 5%"></li> ');
-			$("#proof-list-ol-object").append($proofListLiObject);
-			
-			var proofLineInputValue = $("#proof-formula-input").val();
-			var proofLineRuleDepValue = $("#proof-rule-input option:selected").text() + " " + $("#proof-dependency-input").val();
-			var $objectToAddToList = $(' <span id="span-proof-line-'+currentLine+'">'+proofLineInputValue+'</span>' + 
-									   ' <span id="span-proof-ruledep-'+currentLine+'">'+proofLineRuleDepValue+'</span>');
-			
-			$("#"+currentLineId).append($objectToAddToList);
-			$("#span-proof-ruledep-" + currentLine).css("float" , "right");
-			$("#proof-list-ol-object").css("padding-right", "5%");
-			$("#proof-list-ol-object").css("padding-top", "5%");
-			
-			currentLine++;
-		}
-	});
-	
-	$("body").on("click", "#proof-remove", function(){
-		var currentLineId = "proof-list-li-object-" + (currentLine-1);
-		$("#" + currentLineId).remove();
-		
-		if(--currentLine === 0) currentLine = 1;
-	});
-	
-	$("body").on("click", "#proof-clear", function(){
-		currentLine = 1;
-		formulaValid = false;
-		$("#proof-area").empty();
-		$("#proof-buttons").empty();
-		$("#proof-input-area").hide();
-		$("#formula").prop("disabled", false); //disabled
-	});
-	
-	
-	//$.getScript("js/tombstone.min.js"); //preload tombstone logic library
-	//$.getScript("js/proofGen.js"); //load proof scripts
-	
-	/**
-	*	A function to determine if a provided logic formula is provable by Natural Deduction (a tautology)
-	*	@param {String} formula - User's formula input
-	*	@return {boolean} - Returns whether or not the logic formula is a tautology
-	*/
-	function isProvable (formula) {
-		//console.clear();
-		//replace all special characters with something more relatable
-		formula = formula.replace(new RegExp("⇒", "g"), "->");
-		formula = formula.replace(new RegExp("∧", "g"), "&");
-		formula = formula.replace(new RegExp("∨", "g"), "||");
-		formula = formula.replace(new RegExp("¬", "g"), "~");
-		
-		var statement = null;
-		var truthtable = null;
-		try {
-			statement = new tombstone.Statement(formula);
-			truthtable = statement.table();
-		}
-		catch (e) {
-			message = "Your formula is syntactically incorrect";
+
+	$("#btnCheck").click(function(){
+		let proofPropsString 	= $("#proofProps").val();
+		let proofRulesString 	= $("#proofRules").val();
+		let proofRuleDepsString = $("#proofRuleDeps").val();
+
+
+		if(proofPropsString==="" || proofRulesString==="" || proofRuleDepsString===""){
+			$("#errorMsg").text("One or more textareas are empty");
 			return false;
 		}
-		
-		//convert results of truthtable string into actual array values for processing
-		var rows = truthtable.split("\n");
-		for(var i=2; i<rows.length; i++){
-			var row = [];
-			row = rows[i].split("|");
-			if(row[row.length - 2].trim() === "false"){
-				message = "Your formula is not a tautology, and is therefore not provable by Natural Deduction";
-				return false;
-			}
+
+		//get proof into arrays for adding to ProofLine object
+		let proofProps 	  = proofPropsString.split('\n');
+		let proofRules 	  = proofRulesString.split('\n');
+		let proofRuleDeps = proofRuleDepsString.split('\n');
+
+		if(proofProps.length !== proofRules.length || proofRules.length !== proofRuleDeps.length){
+			$("#errorMsg").text("Number of Lines are not equal for all input areas");
+			return false;
 		}
-		
-		//TESTING CODE
 
-		//ProofLine test
-		var pl = new ProofLine(1, 5, "(A||~A)=>(A||~A)", "impintro", 4);
-		console.log("pl test: " + pl.getLineAsString());
+		//proof is now valid
+		$("#errorMsg").text("");
+		$('#btnValidateProof').prop('disabled', false);
+		$('#btnValidateCancel').prop('disabled', false);
 
-		console.log(statement.table()); 
-		console.log(statement.symbols);
-		console.log(statement.variables);
-		console.log(statement.symbolsRPN);
-		console.log(statement.tree["tree"][0]);
-		console.log("Statement: " + statement.statement);
-		var f = treeToFormula(statement.tree["tree"][0], 0);
-		console.log(f);
-		console.log("Matches with original formula: " + (f===formula))
-		console.log(JSON.stringify(statement.tree));
-		
-		return true;
-	}
+		$("#proofString").text(""); //clear proof string
+		for(var i=0; i<proofProps.length; i++){
+			let ruleDepsArray = [];
+			let currentRuleDeps = proofRuleDeps[i];
+
+			ruleDepsArray   = currentRuleDeps.replace('/\s/g', '').split(',').map(Number); //"1,2,3" = [1,2,3]
+
+			proof.push(new ProofLine([], i+1, proofProps[i], proofRules[i], ruleDepsArray));
+			$("#proofString").text($("#proofString").text() + proof[i].getLineAsString() + "\n");
+		}
+
+		//display as formula
+		formula = proof[proof.length-1].getProposition();
+		$("#proofString").text($("#proofString").text() + "\nFormula: " + formula);
+
+		$("#btnCheck").prop("disabled", true);
+		$("#btnAddRule").prop("disabled", true);
+		$("#proofProps").prop("disabled", true);
+		$("#proofRules").prop("disabled", true);
+		$("#proofRuleDeps").prop("disabled", true);
+	});
+
+	$("#btnValidateCancel").click(function(){
+		//enable
+		$("#btnCheck").prop("disabled", false);
+		$("#btnAddRule").prop("disabled", false);
+		$("#proofProps").prop("disabled", false);
+		$("#proofRules").prop("disabled", false);
+		$("#proofRuleDeps").prop("disabled", false);
+
+		//disable
+		$('#btnValidateProof').prop('disabled', true);
+		$('#btnValidateCancel').prop('disabled', true);
+
+		//reset
+		proof = [];
+		formula = "";
+		$("#proofString").text("{ Proof will appear here }");
+	});
+
+	$("#btnValidateProof").click(function(){
+		let statement = new tombstone.Statement(formula);
+		let formulaTree = statement.tree["tree"][0];
+
+		var proofValidator = new ProofValidator(formulaTree, proof);
+		var isProofValid = proofValidator.isProofValid();
+		var proofFeedback = proofValidator.getFeedback(); //array of feedback
+		console.log(proofFeedback);
+	});
 });
 
-
-
-
-
-
-
-
-},{"./js/proofLine.js":1,"./js/proofValidator.js":2,"./js/treeToFormula.js":3,"./tombstoneLib/tombstone.min.js":6,"jquery":4}],6:[function(require,module,exports){
-!function(t,e){"object"==typeof exports&&"object"==typeof module?module.exports=e():"function"==typeof define&&define.amd?define("tombstone",[],e):"object"==typeof exports?exports.tombstone=e():t.tombstone=e()}(this,function(){return function(t){function e(n){if(r[n])return r[n].exports;var o=r[n]={exports:{},id:n,loaded:!1};return t[n].call(o.exports,o,o.exports,e),o.loaded=!0,o.exports}var r={};return e.m=t,e.c=r,e.p="",e(0)}([function(t,e,r){t.exports=r(1)},function(t,e,r){"use strict";function n(t){return t&&t.__esModule?t:{"default":t}}Object.defineProperty(e,"__esModule",{value:!0}),e.Statement=void 0;var o=r(2),a=n(o);e.Statement=a["default"]},function(t,e,r){"use strict";function n(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}function o(t){var e=!1,r=[],n=[],o=!0,a=!1,i=void 0;try{for(var u,s=t[Symbol.iterator]();!(o=(u=s.next()).done);o=!0){var f=u.value;if(f.match(/^[a-z]{1}$/i))r.push(f);else if(")"===f){for(e=!1;!e&&"("!==n[n.length-1];)r.push(n.pop()),e="("===n[n.length-1];n.pop()}else{for(;l(f,n[n.length-1]);)r.push(n.pop());n.push(f)}}}catch(c){a=!0,i=c}finally{try{!o&&s["return"]&&s["return"]()}finally{if(a)throw i}}return r.push.apply(r,n.reverse()),r}function a(t){var e=/^[a-z()]{1}$/i,r=0,n=0,o=null,a=null,i=null,u=!1,l=!1,s=null;if(0===t.length)return"no symbols!";for(var f=0;f<t.length;++f)o=t[f],i=void 0===t[f+1]?"":t[f+1],a=void 0===t[f-1]?"":t[f-1],u=["~","&","||","->","<->"].includes(o),u||o.match(e)||(s="unknown symbol!"),"("===o?r+=1:")"===o?n+=1:u&&l&&"~"!==o?s="double operators!":u&&"~"!==o?a.match(e)&&("~"===i||i.match(e))||(s="missing operand!"):"~"===o&&(i.match(e)||(s="missing operand!")),l=u;return r!==n?s="unbalanced parentheses!":t.length===r+n&&(s="no symbols!"),s}function i(t){var e=["(",")","->","&","||","~","<->"],r=t.split(" "),n=0,o=null,a=null,i=[],u=!0,l=!1,s=void 0;try{for(var f,c=r[Symbol.iterator]();!(u=(f=c.next()).done);u=!0){var h=f.value;if(!h.match(/^[a-z]+$/i)&&e.indexOf(h)<0)for(n=0;n<h.length;)o=h.slice(n,n+2),a=h.slice(n,n+3),"<->"===a?(i.push(a),n+=3):"->"===o||"||"===o?(i.push(o),n+=2):(i.push(h.charAt(n)),n+=1);else i.push(h)}}catch(v){l=!0,s=v}finally{try{!u&&c["return"]&&c["return"]()}finally{if(l)throw s}}return i}function u(t){var e=i(t),r=[],n=!0,o=!1,a=void 0;try{for(var u,l=e[Symbol.iterator]();!(n=(u=l.next()).done);n=!0){var s=u.value;s.match(/^[a-z]+$/i)&&r.push(s)}}catch(f){o=!0,a=f}finally{try{!n&&l["return"]&&l["return"]()}finally{if(o)throw a}}return r}function l(t,e){var r=["~","&","||","->","<->"];return void 0!==e&&"("!==e&&r.indexOf(t)>r.indexOf(e)}function s(t,e){var r=[],n=!0,o=!1,a=void 0;try{for(var i,u=t[Symbol.iterator]();!(n=(i=u.next()).done);n=!0){var l=i.value;["(",")","->","&","||","<->","~"].includes(l)?r.push(l):r.push(e[l])}}catch(s){o=!0,a=s}finally{try{!n&&u["return"]&&u["return"]()}finally{if(o)throw a}}return r}function f(t,e){switch(t){case"~":return!e[0];case"&":return e[0]&&e[1];case"||":return e[0]||e[1];case"->":return!e[1]||e[0];case"<->":return e[0]===e[1]}}function c(t){var e=[],r=null,n=0,o=!0,a=!1,i=void 0;try{for(var u,l=t[Symbol.iterator]();!(o=(u=l.next()).done);o=!0){var s=u.value;s.match(/^[a-z]{1}$/i)?e.push({name:s}):(r=e.pop(),"~"===s?e.push({name:s,children:[r]}):e.push({name:s,children:[r,e.pop()]})),n+=1}}catch(f){a=!0,i=f}finally{try{!o&&l["return"]&&l["return"]()}finally{if(a)throw i}}return{tree:e,size:n}}Object.defineProperty(e,"__esModule",{value:!0});var h=function(){function t(t,e){for(var r=0;r<e.length;r++){var n=e[r];n.enumerable=n.enumerable||!1,n.configurable=!0,"value"in n&&(n.writable=!0),Object.defineProperty(t,n.key,n)}}return function(e,r,n){return r&&t(e.prototype,r),n&&t(e,n),e}}(),v=r(3),p=function(){function t(e){n(this,t),this.symbols=i(e);var r=a(this.symbols);if(r)throw new Error(r);this.statement=e,this.variables=u(this.statement),this.symbolsRPN=o(this.symbols),this.tree=c(this.symbolsRPN)}return h(t,[{key:"evaluate",value:function(t){var e=s(this.symbolsRPN,t),r=[],n=[],o=!0,a=!1,i=void 0;try{for(var u,l=e[Symbol.iterator]();!(o=(u=l.next()).done);o=!0){var c=u.value;"boolean"==typeof c?r.push(c):(n.push(r.pop()),"~"!==c&&n.push(r.pop()),r.push(f(c,n)),n=[])}}catch(h){a=!0,i=h}finally{try{!o&&l["return"]&&l["return"]()}finally{if(a)throw i}}return r[0]}},{key:"variables",value:function(){return this.variables}},{key:"symbols",value:function(){return this.symbols}},{key:"table",value:function(){return v(this,"Markdown")}}]),t}();e["default"]=p,t.exports=e["default"]},function(t,e,r){"use strict";function n(t,e){return e.length===t?[e]:n(t,e.concat(!0)).concat(n(t,e.concat(!1)))}function o(t){for(var e=t.length,r=n(e,[]),o=r.length,a=[],i={},u=0;u<o;++u){i={};for(var l=0;l<e;++l)i[t[l]]=r[u][l];a.push(i)}return a}function a(t){var e={};e.statement=t.statement,e.variables=t.variables,e.rows=o(e.variables);for(var r=0;r<e.rows.length;++r)e.rows[r].eval=t.evaluate(e.rows[r]);return e}function i(t){var e=[],r=[],n=t.variables.slice();n.push(t.statement.replace(/\|/g,"&#124;")),e.push(n);for(var o=0;o<t.rows.length;++o){r=[];for(var a=0;a<t.variables.length;++a)r.push(t.rows[o][t.variables[a]]);r.push(t.rows[o].eval),e.push(r)}return l(e,{align:"c"})}function u(t,e){var r=a(t),n=e.toLowerCase();switch(n){case"markdown":return i(r)}}Object.defineProperty(e,"__esModule",{value:!0});var l=r(4);e["default"]=u,t.exports=e["default"]},function(t,e){/**
-	 * @author Titus Wormer
-	 * @copyright 2014 Titus Wormer
-	 * @license MIT
-	 * @module markdown-table
-	 * @fileoverview Count syllables in English words.
-	 */
-"use strict";function r(t,e){var r,u,g,w,x,j,S,k,O,_,P,z,$=e||{},M=$.delimiter,A=$.start,C=$.end,L=$.align,N=$.stringLength||n,R=0,E=-1,T=t.length,q=[];for(L=L?L.concat():[],null!==M&&void 0!==M||(M=m+y+m),null!==A&&void 0!==A||(A=y+m),null!==C&&void 0!==C||(C=m+y);++E<T;)for(w=t[E],j=-1,w.length>R&&(R=w.length);++j<R;)S=w[j]?a(w[j]):null,q[j]||(q[j]=3),S>q[j]&&(q[j]=S);for("string"==typeof L&&(L=o(R,L).split("")),j=-1;++j<R;)r=L[j],"string"==typeof r&&(r=r.charAt(0).toLowerCase()),v.indexOf(r)===-1&&(r=h),L[j]=r;for(E=-1,g=[];++E<T;){for(w=t[E],j=-1,x=[];++j<R;)O=w[j],O=null===O||void 0===O?"":String(O),L[j]===c?(S=a(O),k=q[j]+(i.test(O)?0:1)-(N(O)-S),x[j]=O+o(k-1)):x[j]=O;g[E]=x}for(q=[],E=-1;++E<T;)for(x=g[E],j=-1;++j<R;)O=x[j],q[j]||(q[j]=3),k=N(O),k>q[j]&&(q[j]=k);for(E=-1;++E<T;){for(x=g[E],j=-1;++j<R;)O=x[j],S=q[j]-(N(O)||0),_=o(S),L[j]===s||L[j]===c?O=_+O:L[j]===f?(S/=2,S%1===0?(P=S,z=S):(P=S+.5,z=S-.5),O=o(P)+O+o(z)):O+=_,x[j]=O;g[E]=x.join(M)}if($.rule!==!1){for(j=-1,u=[];++j<R;)r=L[j],O=r===s||r===h?d:p,O+=o(q[j]-2,d),O+=r!==l&&r!==h?p:d,u[j]=O;g.splice(1,0,u.join(M))}return A+g.join(C+b+A)+C}function n(t){return String(t).length}function o(t,e){return Array(t+1).join(e||m)}function a(t){var e=u.exec(t);return e?e.index+1:t.length}t.exports=r;var i=/\./,u=/\.[^.]*$/,l="l",s="r",f="c",c=".",h="",v=[l,s,f,c,h],p=":",d="-",y="|",m=" ",b="\n"}])});
-
-},{}]},{},[5]);
+/* example to copy and paste
+A
+B
+A&B
+*/
+},{"../js/proofLine.js":1,"../js/proofValidator.js":2,"../js/tombstone.min.js":3,"jquery":5}],7:[function(require,module,exports){
+arguments[4][3][0].apply(exports,arguments)
+},{"dup":3}]},{},[6]);

@@ -2,16 +2,18 @@
   "name": "natdud",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "js/proofEngine.js",
   "scripts": {
-    "build": "browserify proofInput.js -o proofEngine.js",
-    "watch": "watchify proofInput.js -o proofEngine.js"
+    "build": "browserify js/proofInput.js -o js/proofEngine.js",
+    "watch": "watchify js/proofInput.js -o js/proofEngine.js",
+    "buildTest": "browserify test_framework/test_framework.js -o test_framework/test_framework_compiled.js",
+    "watchTest": "watchify test_framework/test_framework.js -o test_framework/test_framework_compiled.js"
   },
   "repository": {
     "type": "git",
     "url": "https://www.github.com/liaisong/natdud"
   },
-  "author": "",
+  "author": "LiaisonG",
   "license": "ISC",
   "devDependencies": {
     "browserify": "^15.2.0",

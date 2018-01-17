@@ -1,6 +1,7 @@
-import ProofValidator from '../js/proofValidator.js';
-import ProofLine from '../js/proofLine.js';
-$.getScript('../js/tombstone.min.js');
+var ProofValidator = require('../js/proofValidator.js');
+var ProofLine = require('../js/proofLine.js');
+var tombstone = require('../js/tombstone.min.js');
+var $ = require('jquery');
 
 /*
  *	JQuery to manipulate elements and validations
