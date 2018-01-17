@@ -1,7 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-// import {treeToFormula} from '../js/treeToFormula.js';
-// import ProofValidator from '../js/proofValidator.js';
-// import ProofLine from '../js/proofLine.js'; //temp testing
 var treeToFormula = require('./treeToFormula.js');
 var ProofLine = require('./proofLine.js');
 var tombstone = require('./tombstone.min.js');
@@ -523,6 +520,8 @@ class ProofValidator {
                         return false;
                     break;
                 case "notelim":
+                    if(!this._notElimCheck(currentLine, i))
+                        return false;
                     break;
                 case "raa":
                     break;
@@ -565,6 +564,9 @@ class ProofValidator {
         if(deps.length > 1 || deps.length < 1){ //too many or too little rule justifications
             this._addProblemToProblemList(currentLineNumber, "notIntro can only have 1 rule justification. Rule usage: A->F | ¬A");
             return false;
+        }else if(deps[0] >= currentLineNumber+1){
+            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            return false;
         }else if(tree["name"] !== "~"){ //first operation is not a negation
             this._addProblemToProblemList(currentLineNumber, "you have attempted to use notIntroduction without introducing a negation. Rule usage: A->F | ¬A");
             return false;
@@ -588,6 +590,55 @@ class ProofValidator {
             return false;
         }else if(depRightProp !== "F"){    //A->(F) !== F
             this._addProblemToProblemList(currentLineNumber, "invalid use of notIntro: the justification you are attempting to use does not contain Falsum as its consequent (right of the arrow) in the implication. E.g. A->F");
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * psuedo-private function check use of notElim rule is valid e.g. ¬A | A->F
+     * @param {Object.ProofLine} currentLine - Line as ProofLine object
+     * @param {number} currentLineNumber     - line number of proof line
+     * @return {boolean} isValid
+     */
+    _notElimCheck(currentLine, currentLineNumber){
+        let deps = currentLine.getRuleDependencies(); //[3]
+        let prop = currentLine.getProposition(); //"A->F"
+        let tree = new tombstone.Statement(prop).tree["tree"][0];
+
+        if(deps.length > 1 || deps.length < 1){ //too many or too little rule justifications
+            this._addProblemToProblemList(currentLineNumber, "notElim can only have 1 rule justification. Rule usage: ¬A | A->F");
+            return false;
+        }else if(deps[0] >= currentLineNumber+1){
+            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            return false;
+        }else if(tree["name"] !== "->"){ //first operation is not an implication i.e. A->F
+            this._addProblemToProblemList(currentLineNumber, "you have attempted to use notElimination without the current line resulting in an implication (->) operation, e.g: A->F");
+            return false;
+        }
+
+
+        let leftProp  = treeToFormula(tree["children"][1] , 0); //A
+        let rightProp = treeToFormula(tree["children"][0] , 0); //F
+        if(rightProp !== "F"){ //A->(F) !== "F"
+            this._addProblemToProblemList(currentLineNumber, "notElim must result in an implication where the consequent (right of the arrow) is falsum, e.g: A->F");
+            return false;
+        }
+
+        //justification line referencing
+        let depLine = this.proof[deps[0]-1];
+        let depProp = depLine.getProposition(); //"~A"
+        let depTree = new tombstone.Statement(depProp).tree["tree"][0]; //~A treeObj
+        let depOper = depTree["name"]; //"~"
+        if(depOper !== "~"){ //operation on justification line is not negation
+            this._addProblemToProblemList(currentLineNumber, "notElim must be carried out upon a negated proposition, e.g: ~A in the rule ~A | A->F");
+            return false;
+        }
+
+        let notDepProp = treeToFormula(depTree["children"][0] , 0); //"A"
+        if(notDepProp !== leftProp){ //(A)->F !== "A"
+            this._addProblemToProblemList(currentLineNumber, "the antecedent (left of the arrow) of the implication on this line must be equivilant to the non-negated justification line: ¬A | A->F , where A is the antecendent");
             return false;
         }
 

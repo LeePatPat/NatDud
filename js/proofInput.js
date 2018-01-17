@@ -1,6 +1,3 @@
-// import {treeToFormula} from '../js/treeToFormula.js';
-// import ProofValidator from '../js/proofValidator.js';
-// import ProofLine from '../js/proofLine.js'; //temp testing
 var treeToFormula = require('./treeToFormula.js');
 var ProofLine = require('./proofLine.js');
 var tombstone = require('./tombstone.min.js');
