@@ -11,7 +11,6 @@ var $ = require('jquery');
  *	JQuery to manipulate elements and validations
  */
 $(document).ready(function(){
-	console.log("we get here");
 	var formulaValid 	= false;
 	var formulaString 	= "";
 	var currentLine 	= 1; //current line of the proof
@@ -264,19 +263,19 @@ $(document).ready(function(){
 		//TESTING CODE
 
 		//ProofLine test
-		// var pl = new ProofLine(1, 5, "(A||~A)=>(A||~A)", "impintro", 4);
-		// console.log("pl test: " + pl.getLineAsString());
+		var pl = new ProofLine(1, 5, "(A||~A)=>(A||~A)", "impintro", 4);
+		console.log("pl test: " + pl.getLineAsString());
 
-		// console.log(statement.table()); 
-		// console.log(statement.symbols);
-		// console.log(statement.variables);
-		// console.log(statement.symbolsRPN);
-		// console.log(statement.tree["tree"][0]);
-		// console.log("Statement: " + statement.statement);
-		// var f = treeToFormula(statement.tree["tree"][0], 0);
-		// console.log(f);
-		// console.log("Matches with original formula: " + (f===formula))
-		// console.log(JSON.stringify(statement.tree));
+		console.log(statement.table()); 
+		console.log(statement.symbols);
+		console.log(statement.variables);
+		console.log(statement.symbolsRPN);
+		console.log(statement.tree["tree"][0]);
+		console.log("Statement: " + statement.statement);
+		var f = treeToFormula(statement.tree["tree"][0], 0);
+		console.log(f);
+		console.log("Matches with original formula: " + (f===formula))
+		console.log(JSON.stringify(statement.tree));
 		
 		return true;
 	}
@@ -520,6 +519,8 @@ class ProofValidator {
                 case "orelim":
                     break;
                 case "notintro":
+                    if(!this._notIntroCheck(currentLine, i))
+                        return false;
                     break;
                 case "notelim":
                     break;
@@ -549,6 +550,49 @@ class ProofValidator {
 
 
     //------------------------NON-SEQUENT INFERENCE RULES--------------------------------//
+
+    /**
+     * psuedo-private function check use of notIntro rule is valid e.g. A->F | ¬A
+     * @param {Object.ProofLine} currentLine - Line as ProofLine object
+     * @param {number} currentLineNumber     - line number of proof line
+     * @return {boolean} isValid
+     */
+    _notIntroCheck(currentLine, currentLineNumber){
+        let deps = currentLine.getRuleDependencies(); //3
+        let prop = currentLine.getProposition(); //~A
+        let tree = new tombstone.Statement(prop).tree["tree"][0];
+
+        if(deps.length > 1 || deps.length < 1){ //too many or too little rule justifications
+            this._addProblemToProblemList(currentLineNumber, "notIntro can only have 1 rule justification. Rule usage: A->F | ¬A");
+            return false;
+        }else if(tree["name"] !== "~"){ //first operation is not a negation
+            this._addProblemToProblemList(currentLineNumber, "you have attempted to use notIntroduction without introducing a negation. Rule usage: A->F | ¬A");
+            return false;
+        }
+
+        let notProp = treeToFormula(tree["children"][0] , 0); //A
+
+
+        let depLine = this.proof[deps[0]-1];
+        let depProp = depLine.getProposition(); //"A->F"
+        let depTree = new tombstone.Statement(depProp).tree["tree"][0];
+        let depOper = depTree["name"]; //"->"
+        let depLeftProp  = treeToFormula(depTree["children"][1] , 0); //"A"
+        let depRightProp = treeToFormula(depTree["children"][0] , 0); //"F"
+
+        if(depOper !== "->"){ //justification proposition is not an implication
+            this._addProblemToProblemList(currentLineNumber, "notIntro can only be used on an implication to falsum. E.g: A->F | ¬A");
+            return false;
+        }else if(depLeftProp !== notProp){ //(A)->F !== A
+            this._addProblemToProblemList(currentLineNumber, "the antecedent (left of the arrow) of the implication used has to be the current line without the negation, i.e: A->F | ¬A , where A has to be the antecendent in the implication");
+            return false;
+        }else if(depRightProp !== "F"){    //A->(F) !== F
+            this._addProblemToProblemList(currentLineNumber, "invalid use of notIntro: the justification you are attempting to use does not contain Falsum as its consequent (right of the arrow) in the implication. E.g. A->F");
+            return false;
+        }
+
+        return true;
+    }
 
     /**
      * psuedo-private function check use of impElim1 rule is valid e.g. A  A->B | B

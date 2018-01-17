@@ -10,7 +10,6 @@ var $ = require('jquery');
  *	JQuery to manipulate elements and validations
  */
 $(document).ready(function(){
-	console.log("we get here");
 	var formulaValid 	= false;
 	var formulaString 	= "";
 	var currentLine 	= 1; //current line of the proof
@@ -263,19 +262,19 @@ $(document).ready(function(){
 		//TESTING CODE
 
 		//ProofLine test
-		// var pl = new ProofLine(1, 5, "(A||~A)=>(A||~A)", "impintro", 4);
-		// console.log("pl test: " + pl.getLineAsString());
+		var pl = new ProofLine(1, 5, "(A||~A)=>(A||~A)", "impintro", 4);
+		console.log("pl test: " + pl.getLineAsString());
 
-		// console.log(statement.table()); 
-		// console.log(statement.symbols);
-		// console.log(statement.variables);
-		// console.log(statement.symbolsRPN);
-		// console.log(statement.tree["tree"][0]);
-		// console.log("Statement: " + statement.statement);
-		// var f = treeToFormula(statement.tree["tree"][0], 0);
-		// console.log(f);
-		// console.log("Matches with original formula: " + (f===formula))
-		// console.log(JSON.stringify(statement.tree));
+		console.log(statement.table()); 
+		console.log(statement.symbols);
+		console.log(statement.variables);
+		console.log(statement.symbolsRPN);
+		console.log(statement.tree["tree"][0]);
+		console.log("Statement: " + statement.statement);
+		var f = treeToFormula(statement.tree["tree"][0], 0);
+		console.log(f);
+		console.log("Matches with original formula: " + (f===formula))
+		console.log(JSON.stringify(statement.tree));
 		
 		return true;
 	}
