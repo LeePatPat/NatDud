@@ -80,6 +80,8 @@ class ProofValidator {
                 case "impintro":
                     break;
                 case "impelim":
+                    if(!this._impElimCheck(currentLine, i))
+                        return false;
                     break;
                 case "orintro1":
                     if(!this._orIntro1Check(currentLine, i))
@@ -123,14 +125,58 @@ class ProofValidator {
     //------------------------NON-SEQUENT INFERENCE RULES--------------------------------//
 
     /**
+     * psuedo-private function check use of impElim1 rule is valid e.g. A  A->B | B
+     * @param {Object.ProofLine} currentLine - Line as ProofLine object
+     * @param {number} currentLineNumber     - line number of proof line
+     * @return {boolean} isValid
+     */
+    _impElimCheck(currentLine, currentLineNumber){
+        let deps = currentLine.getRuleDependencies(); //3,2
+        let prop = currentLine.getProposition(); // B
+
+        if(deps.length < 2 || deps.length > 2){//not 2 rule justifications
+            this._addProblemToProblemList(currentLineNumber, "impElim can only have 2 rule justifications.");
+            return false;
+        }else if(deps[0] >= currentLineNumber+1 || deps[1] >= currentLineNumber+1){ //references a line after this line in the proof (cannot occur)
+            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            return false;
+        }
+
+        let dep2line = this.proof[deps[1] - 1]; //A->B
+        let dep2prop = dep2line.getProposition();
+        let dep2tree = new tombstone.Statement(dep2prop).tree["tree"][0];
+        let dep2op   = dep2tree["name"]; //->
+
+        if(dep2op !== "->"){
+            this._addProblemToProblemList(currentLineNumber, "You are attempting to use impElim on a non-implication operation. Rule usage: A  A->B | B");
+            return false;
+        }
+
+        let dep2prop1 = treeToFormula(dep2tree["children"][1], 0); //A
+        let dep2prop2 = treeToFormula(dep2tree["children"][0], 0); //B
+        let dep1      = this.proof[deps[0] - 1]; //A
+        let dep1prop  = dep1.getProposition();
+
+        if(dep1prop !== dep2prop1){ //A !== A
+            this._addProblemToProblemList(currentLineNumber, "your 1st justification does not match the left-side of the implication in your 2nd justification. Rule usage: A  A->B | B");
+            return false;   
+        }else if(prop !== dep2prop2){ //B !== B
+            this._addProblemToProblemList(currentLineNumber, "this line's proposition does not match the right-side of the implication in your 1st justification. Rule usage: A  A->B | B");
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * psuedo-private function check use of orIntro1 rule is valid e.g. A | AvB
      * @param {Object.ProofLine} currentLine - Line as ProofLine object
      * @param {number} currentLineNumber     - line number of proof line
      * @return {boolean} isValid
      */
     _orIntro1Check(currentLine, currentLineNumber){
-        let deps = this.proof[currentLineNumber].getRuleDependencies(); //4
-        let prop = this.proof[currentLineNumber].getProposition(); // AvB
+        let deps = currentLine.getRuleDependencies(); //4
+        let prop = currentLine.getProposition(); // AvB
         let tree = new tombstone.Statement(prop).tree["tree"][0];
         let mainOperation = tree["name"]; //"||"
         let leftProp  = treeToFormula(tree["children"][1], 0); //A
@@ -161,8 +207,8 @@ class ProofValidator {
      * @return {boolean} isValid
      */
     _orIntro2Check(currentLine, currentLineNumber){
-        let deps = this.proof[currentLineNumber].getRuleDependencies(); //4
-        let prop = this.proof[currentLineNumber].getProposition(); // AvB
+        let deps = currentLine.getRuleDependencies(); //4
+        let prop = currentLine.getProposition(); // AvB
         let tree = new tombstone.Statement(prop).tree["tree"][0];
         let mainOperation = tree["name"]; //"||"
         let rightProp  = treeToFormula(tree["children"][0], 0); //B
@@ -261,8 +307,8 @@ class ProofValidator {
      * @return {boolean} isValid
      */
     _andIntroCheck(currentLine, currentLineNumber){
-        let deps = this.proof[currentLineNumber].getRuleDependencies();
-        let prop = this.proof[currentLineNumber].getProposition(); // A&B
+        let deps = currentLine.getRuleDependencies();
+        let prop = currentLine.getProposition(); // A&B
         let tree = new tombstone.Statement(prop).tree["tree"][0];
         let mainOperation = tree["name"]; //"&"
         let leftProp  = treeToFormula(tree["children"][1], 0); //A
