@@ -14,6 +14,7 @@ class ProofValidator {
 	 */
     constructor(formulaTree, proof) {
         this.problemList = []; //list of wrong-doings in proof
+        this.assumeList  = []; //list of assumptions to be discharged
         this.formulaTree = formulaTree; //tree["tree"][0]
         this.proof       = proof;
         this.isValid     = this._validate();
@@ -42,7 +43,6 @@ class ProofValidator {
     _validate() {
         //proof structure eg:
         //  proof[0].getRule() returns "assume" from first line of proof
-        let assumeList = []; //list of assumptions to be discharged
 
         if(treeToFormula(this.formulaTree, 0) !== this.proof[this.proof.length-1].getProposition()){
             this.problemList.push("[Proof]: the last line does not match the given formula. The final conclusion of your proof must result in the given formula being proven.");
@@ -62,8 +62,8 @@ class ProofValidator {
 
             switch(currentRule){
                 case "assume":
-                    if(!assumeList.includes(currentLineProposition))
-                        assumeList.push(currentLineProposition);
+                    if(!this.assumeList.includes(i+1))
+                        this.assumeList.push(i+1);
                     break;
                 case "andintro":
                     if(!this._andIntroCheck(currentLine, i))
@@ -78,6 +78,8 @@ class ProofValidator {
                         return false;
                     break;
                 case "impintro": //discharges assumptions
+                    if(!this._impIntroCheck(currentLine, i))
+                        return false;
                     break;
                 case "impelim":
                     if(!this._impElimCheck(currentLine, i))
@@ -125,7 +127,60 @@ class ProofValidator {
 
     //------------------------SEQUENT INFERENCE RULES------------------------------------//
 
+    /**
+     * psuedo-private function check use of impIntro. Takes assumption A and introduces B. This discharges the assumption A.
+     * A must be an assumption and B must be the product of inference rule usage
+     * @param {Object.ProofLine} currentLine - Line as ProofLine object
+     * @param {number} currentLineNumber     - line number of proof line
+     * @return {boolean} isValid
+     */
+    _impIntroCheck(currentLine, currentLineNumber){
+        let deps = currentLine.getRuleDependencies();
+        let prop = currentLine.getProposition();
+        let tree = new tombstone.Statement(prop).tree["tree"][0];
+        let mainOperation = tree["name"];
 
+        if(mainOperation !== "->"){
+            this._addProblemToProblemList(currentLineNumber, "you have used impIntro but have not introduced an implication. Rule usage: A  B | A->B");
+            return false;
+        }else if(deps.length > 2 || deps.length < 2){
+            this._addProblemToProblemList(currentLineNumber, "impIntro must have exactly 2 rule justifications. Rule usage: A B | A->B");
+            return false;
+        }else if(deps[0] >= currentLineNumber+1  ||  deps[1] >= currentLineNumber+1){
+            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            return false;
+        }
+
+        let antecedent = treeToFormula(tree["children"][1]); //"A"
+        let consequent = treeToFormula(tree["children"][0]); //"B"
+        let dep1line = this.proof[deps[0] - 1];
+        let dep1prop = dep1line.getProposition();
+        let dep1rule = dep1line.getRule();
+        let dep2line = this.proof[deps[1] - 1];
+        let dep2prop = dep2line.getProposition();
+        let dep2rule = dep2line.getRule();
+
+        if(antecedent !== dep1prop){ //(A)->B  !== A
+            this._addProblemToProblemList(currentLineNumber, "justification values are not correct. The antecedent (left-side) of your implication does not correspond to the 1st justification line number you have given. E.g. '3,2' where 3 is the line number for the antecedent.");
+            return false;
+        }else if(consequent !== dep2prop){ //A->(B) !== B
+            this._addProblemToProblemList(currentLineNumber, "justification values are not correct. The consequent (right-side) of your implication does not correspond to the 2nd justification line number you have given. E.g. '3,2' where 2 is the line number for the consequent.");
+            return false;
+        }else if(dep1rule !== "assume"){ //antecedent is not an assumption
+            this._addProblemToProblemList(currentLineNumber, "the antecedent (left-side) of the implication you are trying to introduce must be an assumption. Ensure that you only use impIntro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
+            return false;
+        }else if(dep2rule === "assume"){ //consequent is not an inference rule
+            this._addProblemToProblemList(currentLineNumber, "the consequent (right-side) of the implication you are trying to introduce must be a product of an inference rule. Ensure that you only use impIntro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
+            return false;
+        }
+
+        //discharge the assumption (antecedent) used for the implication introduction - remove from assumeList
+        const index = this.assumeList.indexOf(currentLineNumber+1);
+        if(index !== -1)
+            array.splice(index, 1);
+
+        return true;
+    }
 
 
 
@@ -197,7 +252,7 @@ class ProofValidator {
             this._addProblemToProblemList(currentLineNumber, "notIntro can only be used on an implication to falsum. E.g: A->F | ¬A");
             return false;
         }else if(depLeftProp !== notProp){ //(A)->F !== A
-            this._addProblemToProblemList(currentLineNumber, "the antecedent (left of the arrow) of the implication used has to be the current line without the negation, i.e: A->F | ¬A , where A has to be the antecendent in the implication");
+            this._addProblemToProblemList(currentLineNumber, "the antecedent (left of the arrow) of the implication used has to be the current line without the negation, i.e: A->F | ¬A , where A has to be the antecedent in the implication");
             return false;
         }else if(depRightProp !== "F"){    //A->(F) !== F
             this._addProblemToProblemList(currentLineNumber, "invalid use of notIntro: the justification you are attempting to use does not contain Falsum as its consequent (right of the arrow) in the implication. E.g. A->F");
@@ -249,7 +304,7 @@ class ProofValidator {
 
         let notDepProp = treeToFormula(depTree["children"][0] , 0); //"A"
         if(notDepProp !== leftProp){ //(A)->F !== "A"
-            this._addProblemToProblemList(currentLineNumber, "the antecedent (left of the arrow) of the implication on this line must be equivilant to the non-negated justification line: ¬A | A->F , where A is the antecendent");
+            this._addProblemToProblemList(currentLineNumber, "the antecedent (left of the arrow) of the implication on this line must be equivilant to the non-negated justification line: ¬A | A->F , where A is the antecedent");
             return false;
         }
 
