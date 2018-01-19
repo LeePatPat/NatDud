@@ -77,7 +77,7 @@ class ProofValidator {
                     if(!this._andElim2Check(currentLine, i))
                         return false;
                     break;
-                case "impintro":
+                case "impintro": //discharges assumptions
                     break;
                 case "impelim":
                     if(!this._impElimCheck(currentLine, i))
@@ -91,7 +91,7 @@ class ProofValidator {
                     if(!this._orIntro2Check(currentLine, i))
                         return false;
                     break;
-                case "orelim":
+                case "orelim": //discharges assumptions
                     break;
                 case "notintro":
                     if(!this._notIntroCheck(currentLine, i))
@@ -101,10 +101,15 @@ class ProofValidator {
                     if(!this._notElimCheck(currentLine, i))
                         return false;
                     break;
-                case "raa":
+                case "raa": //discharges assumptions
                     break;
                 case "efq":
+                    if(!this._efqCheck(currentLine, i))
+                        return false;
                     break;
+                default:
+                    console.error("Error in ProofValidator: undetermined case executed.");
+                    return false;
             }
         }
 
@@ -115,7 +120,7 @@ class ProofValidator {
          *  - Check for any unused lines in proof
          */
 
-        return true; //all assumptions discharged and use of rules are valid; proof is valid
+        return true; //all assumptions discharged, line dependencies are correct and use of rules are valid; proof is valid
     }
 
     //------------------------SEQUENT INFERENCE RULES------------------------------------//
@@ -127,6 +132,34 @@ class ProofValidator {
 
 
     //------------------------NON-SEQUENT INFERENCE RULES--------------------------------//
+
+    /**
+     * psuedo-private function check use of falsum-elimination (efq):  F | A . Note: EFQ can produce ANY formula the prover desires.
+     * @param {Object.ProofLine} currentLine - Line as ProofLine object
+     * @param {number} currentLineNumber     - line number of proof line
+     * @return {boolean} isValid
+     */
+    _efqCheck(currentLine, currentLineNumber){
+        let deps = currentLine.getRuleDependencies(); //4
+        if(deps.length > 1 || deps.length < 1){ //too many or too little rule justifications
+            this._addProblemToProblemList(currentLineNumber, "EFQ can only have 1 rule justification. Rule usage: F | A");
+            return false;
+        }else if(deps[0] >= currentLineNumber + 1){ //attempting to use justification that has not yet been proven
+            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            return false;
+        }
+
+        //check if justifcation is Falsum
+        let depLine = this.proof[deps[0] - 1]; //F
+        let depProp = depLine.getProposition();
+        let depTree = new tombstone.Statement(depProp).tree["tree"][0];
+        if(depTree["name"] !== "F"){
+            this._addProblemToProblemList(currentLineNumber, "you have attempted to use EFQ on a non-falsum symbol. On the NatDud application, the falsum system is represented by an 'F' character. Rule usage: F | A");
+            return false;
+        }
+
+        return true;
+    }
 
     /**
      * psuedo-private function check use of notIntro rule is valid e.g. A->F | ¬A
@@ -438,8 +471,6 @@ class ProofValidator {
             return true;
         }
     }
-
-
 
 
 
