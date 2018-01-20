@@ -1,5 +1,3 @@
-//import ProofLine from "../js/proofLine.js"; //may not need
-//import {treeToFormula} from '../js/treeToFormula.js'; //modular function
 var treeToFormula = require('./treeToFormula.js');
 var ProofLine = require('./proofLine.js');
 var tombstone = require('../tombstoneLib/tombstone.min.js');
@@ -34,6 +32,14 @@ class ProofValidator {
      */
     getFeedback() {
         return this.problemList;
+    }
+
+    /**
+     * returns the list of assumptions to be discharged
+     * @return {array.Number} assumeList - array of line numbers that represent lines in the proof that have been assumed
+     */
+    getAssumeList() {
+        return this.assumeList;
     }
 
     /**
@@ -151,8 +157,9 @@ class ProofValidator {
             return false;
         }
 
-        let antecedent = treeToFormula(tree["children"][1]); //"A"
-        let consequent = treeToFormula(tree["children"][0]); //"B"
+
+        let antecedent = treeToFormula(tree["children"][1], 0); //"A"
+        let consequent = treeToFormula(tree["children"][0], 0); //"B"
         let dep1line = this.proof[deps[0] - 1];
         let dep1prop = dep1line.getProposition();
         let dep1rule = dep1line.getRule();
@@ -175,9 +182,9 @@ class ProofValidator {
         }
 
         //discharge the assumption (antecedent) used for the implication introduction - remove from assumeList
-        const index = this.assumeList.indexOf(currentLineNumber+1);
+        const index = this.assumeList.indexOf(dep1line.getLineNum());
         if(index !== -1)
-            array.splice(index, 1);
+            this.assumeList.splice(index, 1);
 
         return true;
     }
@@ -446,7 +453,7 @@ class ProofValidator {
         if(depOperation !== "&"){
             this._addProblemToProblemList(currentLineNumber, "you are attempting to use a line number in your rule justification that does not contain a conjunction.");
             return false;
-        }else if(treeToFormula(depTreeLeftProposition) !== prop){ //line in proof doesn't match with justification line  
+        }else if(treeToFormula(depTreeLeftProposition, 0) !== prop){ //line in proof doesn't match with justification line  
             this._addProblemToProblemList(currentLineNumber, "you have used andElim1 incorrectly. This line does not match with the left side of the & operation of the rule justification line.");
             return false;
         }
@@ -480,7 +487,7 @@ class ProofValidator {
         if(depOperation !== "&"){
             this._addProblemToProblemList(currentLineNumber, "you are attempting to use a line number in your rule justification that does not contain a conjunction.");
             return false;
-        }else if(treeToFormula(depTreeRightProposition) !== prop){ //line in proof doesn't match with justification line  
+        }else if(treeToFormula(depTreeRightProposition, 0) !== prop){ //line in proof doesn't match with justification line  
             this._addProblemToProblemList(currentLineNumber, "you have used andElim2 incorrectly. This line does not match with the left side of the & operation of the rule justification line. Perhaps using the andElim1 rule will resolve this issue.");
             return false;
         }

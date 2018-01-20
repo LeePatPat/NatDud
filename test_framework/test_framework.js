@@ -98,6 +98,7 @@ $(document).ready(function(){
 		var proofValidator = new ProofValidator(formulaTree, proof);
 		var isProofValid = proofValidator.isProofValid();
 		var proofFeedback = proofValidator.getFeedback(); //array of feedback
+		console.log(proofValidator.getAssumeList());
 		console.log(proofFeedback);
 	});
 });
