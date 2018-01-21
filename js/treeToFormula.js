@@ -19,8 +19,6 @@ function treeToFormula(formulaTree, operandNo){
 	var result =  treeToFormula(formulaTree["children"][1], operandNo) 
 				+ formulaTree["name"]
 				+ treeToFormula(formulaTree["children"][0], operandNo);
-	
-	console.log(operandNo);
 
 	if(operandNo === 1) //this ensures that no redundant surrounding brackets occur
 		return result;

@@ -110,6 +110,8 @@ class ProofValidator {
                         return false;
                     break;
                 case "raa": //discharges assumptions
+                    if(!this._raaCheck(currentLine, i))
+                        return false;
                     break;
                 case "efq":
                     if(!this._efqCheck(currentLine, i))
@@ -132,6 +134,68 @@ class ProofValidator {
     }
 
     //------------------------SEQUENT INFERENCE RULES------------------------------------//
+
+    /**
+     * psuedo-private function check use of RAA. Takes in assumed negated line, checks if F is deduced from it, and checks if current line is "unnegated" version of assumption
+     * 
+     * @param {Object.ProofLine} currentLine - Line as ProofLine object
+     * @param {number} currentLineNumber     - line number of proof line
+     * @return {boolean} isValid
+     */
+    _raaCheck(currentLine, currentLineNumber){
+        let prop = currentLine.getProposition(); //A
+        let deps = currentLine.getRuleDependencies(); //2,3
+
+        if(deps.length > 2 || deps.length < 2){ //raa can only have 2 justifications
+            this._addProblemToProblemList(currentLineNumber, "RAA must have exactly 2 rule justifications. Rule usage: ¬A ⊢ F  | A   'F deduced from ¬A produces A'");
+            return false;
+        }else if(deps[0] >= currentLineNumber+1 || deps[1] >= currentLineNumber+1){ //trying to use lines as justification that come after the current line
+            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            return false;
+        }else if(deps[0] >= deps[1]){ //first justification comes after the second justification
+            this._addProblemToProblemList(currentLineNumber, "to use RAA, you must deduce Falsum (F) from the a negated assumption. This means that the negated assumption (e.g. ¬A) must come before falsum in the proof. Rule usage: ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            return false;
+        }
+
+        
+        let dep1line = this.proof[deps[0] - 1]; //~A
+        let dep1prop = dep1line.getProposition();
+        let dep1tree = new tombstone.Statement(dep1prop).tree["tree"][0];
+        let dep1mainOp = dep1tree["name"]; //"~"
+
+        if(dep1mainOp !== "~"){ //first justification is not a negation
+            this._addProblemToProblemList(currentLineNumber, "the first justification of RAA must be a negation. E.g. ¬A. Rule usage: ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            return false;
+        }
+
+        
+        let removedNotDep1 = treeToFormula(dep1tree["children"][0], 0); //remove ¬ from the negated proposition. So ¬A is now A
+
+        if(dep1line.getRule() !== "assume"){ //first justification is not an assumption
+            this._addProblemToProblemList(currentLineNumber, "the first justification must be an assumption. Rule usage: ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            return false;
+        }else if(removedNotDep1 !== prop){ //current line is not unnegated version of justification
+            this._addProblemToProblemList(currentLineNumber, "the current line must be a non-negated form of the first justification. Rule usage: ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            return false;
+        }
+
+
+        let dep2line = this.proof[deps[1] - 1];
+        let dep2prop = dep2line.getProposition();
+
+        if(dep2prop !== "F"){
+            this._addProblemToProblemList(currentLineNumber, "your second justification must be falsum (F). Rule usage:  ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            return false;
+        }
+
+
+        //discharge assumption from first justification
+        const index = this.assumeList.indexOf(dep1line.getLineNum());
+        if(index !== -1)
+            this.assumeList.splice(index, 1);
+
+        return true;
+    }
 
     /**
      * psuedo-private function check use of impIntro. Takes assumption A and introduces B. This discharges the assumption A.
@@ -188,9 +252,6 @@ class ProofValidator {
 
         return true;
     }
-
-
-
 
 
     //------------------------NON-SEQUENT INFERENCE RULES--------------------------------//

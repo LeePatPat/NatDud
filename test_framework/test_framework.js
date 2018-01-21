@@ -103,8 +103,7 @@ $(document).ready(function(){
 	});
 });
 
-/* example to copy and paste
-A
-B
-A&B
-*/
+
+
+
+
