@@ -146,6 +146,10 @@ class ProofValidator {
                         return false;
                     break;
                 case "orelim": //discharges assumptions
+                    if(!this._orElimCheck(currentLine, i)){
+                        this._addProblemToProblemList(i, "\nRule usage: A∨B  A⊢C  B⊢C  |  C\n From the example of usage above - to use orElim: have a disjunction (A∨B); assume the left of the disjunction (A), deduce what you need from said assumption (A⊢C); assume the right of the disjunction (B), deduce what you need from said disjunction (B⊢C). As a result, both assumptions are discharged and you can now use C in your proof.");
+                        return false;
+                    }
                     break;
                 case "notintro":
                     if(!this._notIntroCheck(currentLine, i))
@@ -182,8 +186,102 @@ class ProofValidator {
     //------------------------SEQUENT INFERENCE RULES------------------------------------//
 
     /**
+     * psuedo-private function check use of orElim rule.
+     * @param {Object.ProofLine} currentLine - Line as ProofLine object
+     * @param {number} currentLineNumber     - line number of proof line
+     * @return {boolean} isValid
+     */
+    _orElimCheck(currentLine, currentLineNumber){
+        let prop = currentLine.getProposition();
+        let deps = currentLine.getRuleDependencies();
+
+        if(deps.length > 5 || deps.length < 5){ //does not have 5 justifications
+            this._addProblemToProblemList(currentLineNumber, "orElim must have exactly 5 rule justifications.");
+            return false;
+        }else if(deps[0] >= deps[1] || deps[1] >= deps[2] || deps[2] >= deps[3] || deps[3] >= deps[4]){ //justifications not in correct order
+            this._addProblemToProblemList(currentLineNumber, "the rule justifications are not in order; they must be in ascending order. E.g. 1,2,3,4,5");
+            return false;
+        }else if(deps[4] >= currentLineNumber+1){ //any of the justifications are greater than the current line number
+            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            return false;
+        }
+
+
+        //first justification check
+        let dep1line = this.proof[deps[0] - 1] //AvB
+        let dep1prop = dep1line.getProposition();
+        let dep1tree = new tombstone.Statement(dep1prop).tree["tree"][0];
+        let dep1mainOp = dep1tree["name"];
+        if(dep1mainOp !== "||"){ //not a disjunction
+            this._addProblemToProblemList(currentLineNumber, "the first justification of orElim must be a disjunction ('or' operation). E.g. A∨B");
+            return false;
+        }
+
+        //second justification check
+        let dep1leftDisj  = treeToFormula(dep1tree["children"][1] , 0); //AvB is now A
+        let dep2line = this.proof[deps[1] - 1]; //A
+        let dep2prop = dep2line.getProposition();
+        let dep2rule = dep2line.getRule(); //assume
+        if(dep1leftDisj !== dep2prop){ //left of the conjunction is not the first assumption
+            this._addProblemToProblemList(currentLineNumber, "the second justification must be an assumption of the left-side of the disjunction (e.g. From A∨B, the assumption must be A).");
+            return false;
+        }else if(dep2rule !== "assume"){ //second justification is not an assumption
+            this._addProblemToProblemList(currentLineNumber, "the second justification is not an assumption. This must be an assumption so that it can be discharged by orElim.");
+            return false;
+        }
+
+        //third justification check
+        let dep3line = this.proof[deps[2] - 1]; //C
+        let dep3prop = dep3line.getProposition();
+        let dep3rule = dep3line.getRule(); //some inference rule
+        if(dep3prop !== prop){ //this justification does not match the current line's proposition
+            this._addProblemToProblemList(currentLineNumber, "the third justification proposition must match the current line's proposition. This is so the assumption from the 2nd justiciation can be discharged.");
+            return false;
+        }else if(dep3rule === "assume"){ //the rule for the 3rd justification is an assumption
+            this._addProblemToProblemList(currentLineNumber, "the third justification cannot be an assumption. This is not a legitimate way of discharging the 2nd justification assumption, and therefore must be the product of inference rule usage.");
+            return false;
+        }
+
+        //fourth justification check
+        let dep1rightDisj = treeToFormula(dep1tree["children"][0] , 0); //AvB is now B
+        let dep4line = this.proof[deps[3] - 1]; //B
+        let dep4prop = dep4line.getProposition();
+        let dep4rule = dep4line.getRule(); //assume
+        if(dep1rightDisj !== dep4prop){ //does not match the right side of the disjunction 
+            this._addProblemToProblemList(currentLineNumber, "the fourth justification must be an assumption of the right-side of the disjunction (e.g. From A∨B, the assumption must be B).");
+            return false;
+        }else if(dep4rule !== "assume"){ //rule for 4th justification is not an assumption
+            this._addProblemToProblemList(currentLineNumber, "the fourth justification is not an assumption. This must be an assumption so that it can be discharged by orElim.");
+            return false;
+        }
+
+
+        //fifth justification check
+        let dep5line = this.proof[deps[4] - 1]; //C
+        let dep5prop = dep5line.getProposition();
+        let dep5rule = dep5line.getRule(); //some inference rule
+        if(dep5prop !== prop){ //this justification does not match the current line's proposition
+            this._addProblemToProblemList(currentLineNumber, "the fifth justification proposition must match the current line's proposition. This is so the assumption from the 4th justiciation can be discharged.");
+            return false;
+        }else if(dep5rule === "assume"){ //rule for 5th justification is an assumption 
+            this._addProblemToProblemList(currentLineNumber, "the fifth justification cannot be an assumption. This is not a legitimate way of discharging the 4th justification assumption, and therefore must be the product of inference rule usage.");
+            return false;
+        }
+
+        //rule has been used validly - now discharge dep[1] and dep[3] assumptions
+        var index  = this.assumeList.indexOf(dep2line.getLineNum());
+        if(index !== -1)
+            this.assumeList.splice(index, 1);
+
+        index = this.assumeList.indexOf(dep4line.getLineNum());
+        if(index !== -1)
+            this.assumeList.splice(index, 1);
+
+        return true;
+    }
+
+    /**
      * psuedo-private function check use of RAA. Takes in assumed negated line, checks if F is deduced from it, and checks if current line is "unnegated" version of assumption
-     * 
      * @param {Object.ProofLine} currentLine - Line as ProofLine object
      * @param {number} currentLineNumber     - line number of proof line
      * @return {boolean} isValid
