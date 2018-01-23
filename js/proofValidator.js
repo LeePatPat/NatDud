@@ -1,6 +1,6 @@
 var treeToFormula = require('./treeToFormula.js');
 var ProofLine = require('./proofLine.js');
-var tombstone = require('../tombstoneLib/tombstone.min.js');
+var tombstone = require('./tombstone.min.js');
 
 
 /** Class representing Proof Validator functionality */
@@ -9,13 +9,15 @@ class ProofValidator {
 	 * construct validation of given proof a proof is valid iff all assumptions are discharged
      * @param {Array.Array+} proofTree  - Tree form of original logic formula
      * @param {Array.ProofLine} proof   - Proof as data where each line is of ProofLine class
+     * @param {Boolean} fullValidation  - boolean to determin whether the validator validates the proof completely or only partially
 	 */
-    constructor(formulaTree, proof) {
-        this.problemList = []; //list of wrong-doings in proof
-        this.assumeList  = []; //list of assumptions to be discharged
-        this.formulaTree = formulaTree; //tree["tree"][0]
-        this.proof       = proof;
-        this.isValid     = this._validate();
+    constructor(formulaTree, proof, fullValidation) {
+        this.problemList    = []; //list of wrong-doings in proof
+        this.assumeList     = []; //list of assumptions to be discharged
+        this.formulaTree    = formulaTree; //tree["tree"][0]
+        this.proof          = proof;
+        this.fullValidation = fullValidation; //boolean for full check
+        this.isValid        = this._validate();
     }
 
     /**
@@ -47,28 +49,24 @@ class ProofValidator {
      * @return {boolean} isValid
      */
     _validate() {
-        //proof structure eg:
-        //  proof[0].getRule() returns "assume" from first line of proof
-
         if(treeToFormula(this.formulaTree, 0) !== this.proof[this.proof.length-1].getProposition()){
-            this.problemList.push("[Proof]: the last line does not match the given formula. The final conclusion of your proof must result in the given formula being proven.");
+            this.problemList.push("[Proof]: the last line does not match the given formula. The conclusion of your proof must result in the given formula being proven.");
             return false;
         }
 
         for(var i = 0; i < this.proof.length; i++){ //checks if each line is being used validly
             var currentLine = this.proof[i];
+            var currentLineDeps = currentLine.getDependencies();
             var currentLineProposition = currentLine.getProposition();
             var currentRule = currentLine.getRule().toLowerCase();
             var currentRuleJustification = currentLine.getRuleDependencies();
 
-            if(currentRuleJustification <= 0){ //user has not entered any rule justifications E.g: 1 (2) AvB orIntro  [should be]   1 (2) AvB orIntro 1
-                this._addProblemToProblemList(i, "you have not entered any rule justifications for this line. E.g. andIntro needs one justiciation to show you are using that line for and-Introduction");
-                return false;
-            }
-
             switch(currentRule){
                 case "assume":
-                    if(!this.assumeList.includes(i+1))
+                    if(currentLineDeps.length < 1 || currentLineDeps.length > 1 || Number(currentLineDeps[0]) !== i+1){
+                        this._addProblemToProblemList(i, "dependencies are incorrect - the line dependency for an assumption must be itself.");
+                        return false;
+                    }else if(!this.assumeList.includes(i+1))
                         this.assumeList.push(i+1);
                     break;
                 case "andintro":
@@ -133,6 +131,11 @@ class ProofValidator {
          *  - Assumption dependencies on each line
          *  - Check for any unused lines in proof
          */
+
+        //check assumptions are discharged
+        if(this.fullValidation === true && this.assumeList.length > 0){
+            return false;
+        }
 
         return true; //all assumptions discharged, line dependencies are correct and use of rules are valid; proof is valid
     }
@@ -379,6 +382,14 @@ class ProofValidator {
             return false;
         }
 
+        //check line dependencies
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -422,6 +433,14 @@ class ProofValidator {
             return false;
         }else if(depRightProp !== "F"){    //A->(F) !== F
             this._addProblemToProblemList(currentLineNumber, "invalid use of notIntro: the justification you are attempting to use does not contain Falsum as its consequent (right of the arrow) in the implication. E.g. A->F");
+            return false;
+        }
+
+        //check line dependencies
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
             return false;
         }
 
@@ -474,6 +493,14 @@ class ProofValidator {
             return false;
         }
 
+        //check line dependencies
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -518,6 +545,22 @@ class ProofValidator {
             return false;
         }
 
+        //check line dependencies
+        let dep1deps = dep1.getDependencies();
+        let dep2deps = dep2line.getDependencies();
+        let justificationDeps = [];
+        for(var i=0; i<dep1deps.length; i++)
+            justificationDeps.push(dep1deps[i]);
+        for(var i=0; i<dep2deps.length; i++)
+            justificationDeps.push(dep2deps[i]);
+
+        justificationDeps   = new Set(justificationDeps);
+        let currentLineDeps = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(justificationDeps, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -550,6 +593,16 @@ class ProofValidator {
                 return false;
             }
         }
+
+        //check line dependencies
+        let depLine = this.proof[deps[0]-1];
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -582,6 +635,16 @@ class ProofValidator {
                 return false;
             }
         }
+
+        //check line dependencies
+        let depLine = this.proof[deps[0]-1];
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -616,6 +679,15 @@ class ProofValidator {
             this._addProblemToProblemList(currentLineNumber, "you have used andElim1 incorrectly. This line does not match with the left side of the & operation of the rule justification line.");
             return false;
         }
+
+        //check line dependencies
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -650,6 +722,15 @@ class ProofValidator {
             this._addProblemToProblemList(currentLineNumber, "you have used andElim2 incorrectly. This line does not match with the left side of the & operation of the rule justification line. Perhaps using the andElim1 rule will resolve this issue.");
             return false;
         }
+
+        //check line dependencies
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -677,6 +758,7 @@ class ProofValidator {
             this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
             return false;
         }else{ //operation is conjuction && there are 2 justification values
+            var lineDepsToCheck = []; //array of sets of line dependencies of given justifications
             for(var i=0; i < deps.length; i++){
                 let currentJustificationLineNumber = deps[i] - 1;
                 let currentJustificationProp = this.proof[currentJustificationLineNumber].getProposition();
@@ -688,7 +770,21 @@ class ProofValidator {
                     this._addProblemToProblemList(currentLineNumber, "justification values are not correct. Perhaps check if the justification ordering is correct. E.g. 2,1 to 1,2. This is to ensure consistency for introducing both the left and right side of the conjunction operation.");
                     return false;
                 }
+
+                //add to set of justification line dependencies
+                let currentJustificationLineDependencies = this.proof[currentJustificationLineNumber].getDependencies();
+                for(var j=0; j<currentJustificationLineDependencies.length; j++){
+                    lineDepsToCheck.push(currentJustificationLineDependencies[j]);
+                }
             }
+
+            lineDepsToCheck = new Set(lineDepsToCheck); //justification deps
+            let currentLineDeps = new Set(currentLine.getDependencies());
+            if(!this._areSetsEqual(lineDepsToCheck, currentLineDeps)){
+                this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\nLine 7 dependencies: 1,2,3,4");
+                return false;
+            }
+
             return true;
         }
     }
@@ -696,6 +792,19 @@ class ProofValidator {
 
 
     //----------------------LOCAL FUNCTIONS---------------------------------------------//
+
+    /**
+     * psuedo-private function to check javascript set equality
+     * @param  {boolean} set1 - first set
+     * @param  {boolean} set2 - second set
+     * @return {boolean} isEqual
+     */
+    _areSetsEqual(set1, set2){
+        if(set1.size !== set2.size) return false;
+        for(var val of set1)
+            if(!set2.has(val)) return false;
+        return true;
+    }
 
     /**
      * psuedo-private function to add problem string to problemList

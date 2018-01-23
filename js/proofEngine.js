@@ -422,7 +422,7 @@ module.exports = ProofLine;
 },{}],3:[function(require,module,exports){
 var treeToFormula = require('./treeToFormula.js');
 var ProofLine = require('./proofLine.js');
-var tombstone = require('../tombstoneLib/tombstone.min.js');
+var tombstone = require('./tombstone.min.js');
 
 
 /** Class representing Proof Validator functionality */
@@ -431,13 +431,15 @@ class ProofValidator {
 	 * construct validation of given proof a proof is valid iff all assumptions are discharged
      * @param {Array.Array+} proofTree  - Tree form of original logic formula
      * @param {Array.ProofLine} proof   - Proof as data where each line is of ProofLine class
+     * @param {Boolean} fullValidation  - boolean to determin whether the validator validates the proof completely or only partially
 	 */
-    constructor(formulaTree, proof) {
-        this.problemList = []; //list of wrong-doings in proof
-        this.assumeList  = []; //list of assumptions to be discharged
-        this.formulaTree = formulaTree; //tree["tree"][0]
-        this.proof       = proof;
-        this.isValid     = this._validate();
+    constructor(formulaTree, proof, fullValidation) {
+        this.problemList    = []; //list of wrong-doings in proof
+        this.assumeList     = []; //list of assumptions to be discharged
+        this.formulaTree    = formulaTree; //tree["tree"][0]
+        this.proof          = proof;
+        this.fullValidation = fullValidation; //boolean for full check
+        this.isValid        = this._validate();
     }
 
     /**
@@ -469,28 +471,24 @@ class ProofValidator {
      * @return {boolean} isValid
      */
     _validate() {
-        //proof structure eg:
-        //  proof[0].getRule() returns "assume" from first line of proof
-
         if(treeToFormula(this.formulaTree, 0) !== this.proof[this.proof.length-1].getProposition()){
-            this.problemList.push("[Proof]: the last line does not match the given formula. The final conclusion of your proof must result in the given formula being proven.");
+            this.problemList.push("[Proof]: the last line does not match the given formula. The conclusion of your proof must result in the given formula being proven.");
             return false;
         }
 
         for(var i = 0; i < this.proof.length; i++){ //checks if each line is being used validly
             var currentLine = this.proof[i];
+            var currentLineDeps = currentLine.getDependencies();
             var currentLineProposition = currentLine.getProposition();
             var currentRule = currentLine.getRule().toLowerCase();
             var currentRuleJustification = currentLine.getRuleDependencies();
 
-            if(currentRuleJustification <= 0){ //user has not entered any rule justifications E.g: 1 (2) AvB orIntro  [should be]   1 (2) AvB orIntro 1
-                this._addProblemToProblemList(i, "you have not entered any rule justifications for this line. E.g. andIntro needs one justiciation to show you are using that line for and-Introduction");
-                return false;
-            }
-
             switch(currentRule){
                 case "assume":
-                    if(!this.assumeList.includes(i+1))
+                    if(currentLineDeps.length < 1 || currentLineDeps.length > 1 || Number(currentLineDeps[0]) !== i+1){
+                        this._addProblemToProblemList(i, "dependencies are incorrect - the line dependency for an assumption must be itself.");
+                        return false;
+                    }else if(!this.assumeList.includes(i+1))
                         this.assumeList.push(i+1);
                     break;
                 case "andintro":
@@ -555,6 +553,11 @@ class ProofValidator {
          *  - Assumption dependencies on each line
          *  - Check for any unused lines in proof
          */
+
+        //check assumptions are discharged
+        if(this.fullValidation === true && this.assumeList.length > 0){
+            return false;
+        }
 
         return true; //all assumptions discharged, line dependencies are correct and use of rules are valid; proof is valid
     }
@@ -801,6 +804,14 @@ class ProofValidator {
             return false;
         }
 
+        //check line dependencies
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -844,6 +855,14 @@ class ProofValidator {
             return false;
         }else if(depRightProp !== "F"){    //A->(F) !== F
             this._addProblemToProblemList(currentLineNumber, "invalid use of notIntro: the justification you are attempting to use does not contain Falsum as its consequent (right of the arrow) in the implication. E.g. A->F");
+            return false;
+        }
+
+        //check line dependencies
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
             return false;
         }
 
@@ -896,6 +915,14 @@ class ProofValidator {
             return false;
         }
 
+        //check line dependencies
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -940,6 +967,22 @@ class ProofValidator {
             return false;
         }
 
+        //check line dependencies
+        let dep1deps = dep1.getDependencies();
+        let dep2deps = dep2line.getDependencies();
+        let justificationDeps = [];
+        for(var i=0; i<dep1deps.length; i++)
+            justificationDeps.push(dep1deps[i]);
+        for(var i=0; i<dep2deps.length; i++)
+            justificationDeps.push(dep2deps[i]);
+
+        justificationDeps   = new Set(justificationDeps);
+        let currentLineDeps = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(justificationDeps, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -972,6 +1015,16 @@ class ProofValidator {
                 return false;
             }
         }
+
+        //check line dependencies
+        let depLine = this.proof[deps[0]-1];
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -1004,6 +1057,16 @@ class ProofValidator {
                 return false;
             }
         }
+
+        //check line dependencies
+        let depLine = this.proof[deps[0]-1];
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -1038,6 +1101,15 @@ class ProofValidator {
             this._addProblemToProblemList(currentLineNumber, "you have used andElim1 incorrectly. This line does not match with the left side of the & operation of the rule justification line.");
             return false;
         }
+
+        //check line dependencies
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -1072,6 +1144,15 @@ class ProofValidator {
             this._addProblemToProblemList(currentLineNumber, "you have used andElim2 incorrectly. This line does not match with the left side of the & operation of the rule justification line. Perhaps using the andElim1 rule will resolve this issue.");
             return false;
         }
+
+        //check line dependencies
+        let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
+        let currentLineDeps     = new Set(currentLine.getDependencies());
+        if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\n Line 7 dependencies: 1,2,3,4");
+            return false;
+        }
+
         return true;
     }
 
@@ -1099,6 +1180,7 @@ class ProofValidator {
             this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
             return false;
         }else{ //operation is conjuction && there are 2 justification values
+            var lineDepsToCheck = []; //array of sets of line dependencies of given justifications
             for(var i=0; i < deps.length; i++){
                 let currentJustificationLineNumber = deps[i] - 1;
                 let currentJustificationProp = this.proof[currentJustificationLineNumber].getProposition();
@@ -1110,7 +1192,21 @@ class ProofValidator {
                     this._addProblemToProblemList(currentLineNumber, "justification values are not correct. Perhaps check if the justification ordering is correct. E.g. 2,1 to 1,2. This is to ensure consistency for introducing both the left and right side of the conjunction operation.");
                     return false;
                 }
+
+                //add to set of justification line dependencies
+                let currentJustificationLineDependencies = this.proof[currentJustificationLineNumber].getDependencies();
+                for(var j=0; j<currentJustificationLineDependencies.length; j++){
+                    lineDepsToCheck.push(currentJustificationLineDependencies[j]);
+                }
             }
+
+            lineDepsToCheck = new Set(lineDepsToCheck); //justification deps
+            let currentLineDeps = new Set(currentLine.getDependencies());
+            if(!this._areSetsEqual(lineDepsToCheck, currentLineDeps)){
+                this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\nLine 7 dependencies: 1,2,3,4");
+                return false;
+            }
+
             return true;
         }
     }
@@ -1118,6 +1214,19 @@ class ProofValidator {
 
 
     //----------------------LOCAL FUNCTIONS---------------------------------------------//
+
+    /**
+     * psuedo-private function to check javascript set equality
+     * @param  {boolean} set1 - first set
+     * @param  {boolean} set2 - second set
+     * @return {boolean} isEqual
+     */
+    _areSetsEqual(set1, set2){
+        if(set1.size !== set2.size) return false;
+        for(var val of set1)
+            if(!set2.has(val)) return false;
+        return true;
+    }
 
     /**
      * psuedo-private function to add problem string to problemList
@@ -1132,7 +1241,7 @@ class ProofValidator {
 //import ProofValidator from "proofValidator.js";
 //var pv = new ProofValidator(formulaTree, proofData);
 module.exports = ProofValidator;
-},{"../tombstoneLib/tombstone.min.js":7,"./proofLine.js":2,"./treeToFormula.js":5}],4:[function(require,module,exports){
+},{"./proofLine.js":2,"./tombstone.min.js":4,"./treeToFormula.js":5}],4:[function(require,module,exports){
 !function(t,e){"object"==typeof exports&&"object"==typeof module?module.exports=e():"function"==typeof define&&define.amd?define("tombstone",[],e):"object"==typeof exports?exports.tombstone=e():t.tombstone=e()}(this,function(){return function(t){function e(n){if(r[n])return r[n].exports;var o=r[n]={exports:{},id:n,loaded:!1};return t[n].call(o.exports,o,o.exports,e),o.loaded=!0,o.exports}var r={};return e.m=t,e.c=r,e.p="",e(0)}([function(t,e,r){t.exports=r(1)},function(t,e,r){"use strict";function n(t){return t&&t.__esModule?t:{"default":t}}Object.defineProperty(e,"__esModule",{value:!0}),e.Statement=void 0;var o=r(2),a=n(o);e.Statement=a["default"]},function(t,e,r){"use strict";function n(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}function o(t){var e=!1,r=[],n=[],o=!0,a=!1,i=void 0;try{for(var u,s=t[Symbol.iterator]();!(o=(u=s.next()).done);o=!0){var f=u.value;if(f.match(/^[a-z]{1}$/i))r.push(f);else if(")"===f){for(e=!1;!e&&"("!==n[n.length-1];)r.push(n.pop()),e="("===n[n.length-1];n.pop()}else{for(;l(f,n[n.length-1]);)r.push(n.pop());n.push(f)}}}catch(c){a=!0,i=c}finally{try{!o&&s["return"]&&s["return"]()}finally{if(a)throw i}}return r.push.apply(r,n.reverse()),r}function a(t){var e=/^[a-z()]{1}$/i,r=0,n=0,o=null,a=null,i=null,u=!1,l=!1,s=null;if(0===t.length)return"no symbols!";for(var f=0;f<t.length;++f)o=t[f],i=void 0===t[f+1]?"":t[f+1],a=void 0===t[f-1]?"":t[f-1],u=["~","&","||","->","<->"].includes(o),u||o.match(e)||(s="unknown symbol!"),"("===o?r+=1:")"===o?n+=1:u&&l&&"~"!==o?s="double operators!":u&&"~"!==o?a.match(e)&&("~"===i||i.match(e))||(s="missing operand!"):"~"===o&&(i.match(e)||(s="missing operand!")),l=u;return r!==n?s="unbalanced parentheses!":t.length===r+n&&(s="no symbols!"),s}function i(t){var e=["(",")","->","&","||","~","<->"],r=t.split(" "),n=0,o=null,a=null,i=[],u=!0,l=!1,s=void 0;try{for(var f,c=r[Symbol.iterator]();!(u=(f=c.next()).done);u=!0){var h=f.value;if(!h.match(/^[a-z]+$/i)&&e.indexOf(h)<0)for(n=0;n<h.length;)o=h.slice(n,n+2),a=h.slice(n,n+3),"<->"===a?(i.push(a),n+=3):"->"===o||"||"===o?(i.push(o),n+=2):(i.push(h.charAt(n)),n+=1);else i.push(h)}}catch(v){l=!0,s=v}finally{try{!u&&c["return"]&&c["return"]()}finally{if(l)throw s}}return i}function u(t){var e=i(t),r=[],n=!0,o=!1,a=void 0;try{for(var u,l=e[Symbol.iterator]();!(n=(u=l.next()).done);n=!0){var s=u.value;s.match(/^[a-z]+$/i)&&r.push(s)}}catch(f){o=!0,a=f}finally{try{!n&&l["return"]&&l["return"]()}finally{if(o)throw a}}return r}function l(t,e){var r=["~","&","||","->","<->"];return void 0!==e&&"("!==e&&r.indexOf(t)>r.indexOf(e)}function s(t,e){var r=[],n=!0,o=!1,a=void 0;try{for(var i,u=t[Symbol.iterator]();!(n=(i=u.next()).done);n=!0){var l=i.value;["(",")","->","&","||","<->","~"].includes(l)?r.push(l):r.push(e[l])}}catch(s){o=!0,a=s}finally{try{!n&&u["return"]&&u["return"]()}finally{if(o)throw a}}return r}function f(t,e){switch(t){case"~":return!e[0];case"&":return e[0]&&e[1];case"||":return e[0]||e[1];case"->":return!e[1]||e[0];case"<->":return e[0]===e[1]}}function c(t){var e=[],r=null,n=0,o=!0,a=!1,i=void 0;try{for(var u,l=t[Symbol.iterator]();!(o=(u=l.next()).done);o=!0){var s=u.value;s.match(/^[a-z]{1}$/i)?e.push({name:s}):(r=e.pop(),"~"===s?e.push({name:s,children:[r]}):e.push({name:s,children:[r,e.pop()]})),n+=1}}catch(f){a=!0,i=f}finally{try{!o&&l["return"]&&l["return"]()}finally{if(a)throw i}}return{tree:e,size:n}}Object.defineProperty(e,"__esModule",{value:!0});var h=function(){function t(t,e){for(var r=0;r<e.length;r++){var n=e[r];n.enumerable=n.enumerable||!1,n.configurable=!0,"value"in n&&(n.writable=!0),Object.defineProperty(t,n.key,n)}}return function(e,r,n){return r&&t(e.prototype,r),n&&t(e,n),e}}(),v=r(3),p=function(){function t(e){n(this,t),this.symbols=i(e);var r=a(this.symbols);if(r)throw new Error(r);this.statement=e,this.variables=u(this.statement),this.symbolsRPN=o(this.symbols),this.tree=c(this.symbolsRPN)}return h(t,[{key:"evaluate",value:function(t){var e=s(this.symbolsRPN,t),r=[],n=[],o=!0,a=!1,i=void 0;try{for(var u,l=e[Symbol.iterator]();!(o=(u=l.next()).done);o=!0){var c=u.value;"boolean"==typeof c?r.push(c):(n.push(r.pop()),"~"!==c&&n.push(r.pop()),r.push(f(c,n)),n=[])}}catch(h){a=!0,i=h}finally{try{!o&&l["return"]&&l["return"]()}finally{if(a)throw i}}return r[0]}},{key:"variables",value:function(){return this.variables}},{key:"symbols",value:function(){return this.symbols}},{key:"table",value:function(){return v(this,"Markdown")}}]),t}();e["default"]=p,t.exports=e["default"]},function(t,e,r){"use strict";function n(t,e){return e.length===t?[e]:n(t,e.concat(!0)).concat(n(t,e.concat(!1)))}function o(t){for(var e=t.length,r=n(e,[]),o=r.length,a=[],i={},u=0;u<o;++u){i={};for(var l=0;l<e;++l)i[t[l]]=r[u][l];a.push(i)}return a}function a(t){var e={};e.statement=t.statement,e.variables=t.variables,e.rows=o(e.variables);for(var r=0;r<e.rows.length;++r)e.rows[r].eval=t.evaluate(e.rows[r]);return e}function i(t){var e=[],r=[],n=t.variables.slice();n.push(t.statement.replace(/\|/g,"&#124;")),e.push(n);for(var o=0;o<t.rows.length;++o){r=[];for(var a=0;a<t.variables.length;++a)r.push(t.rows[o][t.variables[a]]);r.push(t.rows[o].eval),e.push(r)}return l(e,{align:"c"})}function u(t,e){var r=a(t),n=e.toLowerCase();switch(n){case"markdown":return i(r)}}Object.defineProperty(e,"__esModule",{value:!0});var l=r(4);e["default"]=u,t.exports=e["default"]},function(t,e){/**
 	 * @author Titus Wormer
 	 * @copyright 2014 Titus Wormer
@@ -11430,6 +11539,4 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],7:[function(require,module,exports){
-arguments[4][4][0].apply(exports,arguments)
-},{"dup":4}]},{},[1]);
+},{}]},{},[1]);
