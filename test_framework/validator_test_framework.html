@@ -11,9 +11,10 @@
     	<p>For rule dependencies: enter "-" for the use of assumption</p>
 
     	<div id="proofDiv">
+    		<textarea id="proofLineDeps" placeholder="line deps 1,2" cols="15" rows="10"></textarea>
 			<textarea id="proofProps" placeholder="ass/conc/prems" cols="15" rows="10"></textarea>
 			<textarea id="proofRules" placeholder="rules" cols="15" rows="10"></textarea>
-			<textarea id="proofRuleDeps" placeholder="rule deps 1,2" cols="15" rows="10"></textarea>
+			<textarea id="proofRuleJustifications" placeholder="rule deps 1,2" cols="15" rows="10"></textarea>
 		</div>
 
 		<div id="ruleAddDiv">
@@ -41,10 +42,14 @@
 			<p id="errorMsg"></p>
 		</div>
 
-		<div>
+		<div id="proofStringArea">
 			<pre id="proofString">{ Proof will appear here }</pre>
 			<button id="btnValidateProof" disabled>Validate</button>
 			<button id="btnValidateCancel" disabled>Cancel</button>
+		</div>
+
+		<div id="feedbackArea">
+			<pre id="feedback">{ feedback will appear here }</pre>
 		</div>
     </body>
     
