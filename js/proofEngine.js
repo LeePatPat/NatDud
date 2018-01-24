@@ -712,6 +712,35 @@ class ProofValidator {
         }
 
 
+        //check line dependencies
+        let dep1deps        = dep1line.getDependencies().sort();    //1,2
+        let dep2deps        = dep2line.getDependencies().sort();    //1,2,5,6
+        let currentLineDeps = currentLine.getDependencies().sort(); //5,6
+        let tempDeps        = dep1deps.concat(dep2deps); //list for final comparison
+        let removeIndexes   = []; //list of indexes to remove from tempDeps
+        for(var i=0; i<tempDeps.length-1; i++){ //find indexes that are duplicates
+            for(var j=i+1; j<tempDeps.length; j++){
+                if(tempDeps[i] === tempDeps[j]){
+                    removeIndexes.push(i);
+                    removeIndexes.push(j);
+                }
+            }
+        }
+
+        let newDeps = [];
+        for(var i=0; i<tempDeps.length; i++){ //remove duplicates
+            if(removeIndexes.includes(i)) continue;
+            newDeps.push(tempDeps[i]);
+        }
+
+        newDeps = new Set(newDeps);
+        currentLineDeps = new Set(currentLineDeps);
+        if(!this._areSetsEqual(newDeps, currentLineDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for the RAA: remove the dependencies of the assumption justification from the second justification's dependencies.\nE.g. (7)...impIntro 5,6\nLine 5 dependencies: 1\nLine 6 dependencies: 1,2\n Line 7 dependencies: 2");
+            return false;
+        }
+
+
         //discharge assumption from first justification
         const index = this.assumeList.indexOf(dep1line.getLineNum());
         if(index !== -1)
