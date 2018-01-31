@@ -1,3 +1,8 @@
+var treeToFormula = require('./treeToFormula.js');
+var ProofLine = require('./proofLine.js');
+var tombstone = require('./tombstone.min.js');
+var ProofValidator = require('./proofValidator.js');
+var $ = require('jquery');
 /*
  *	JQuery to manipulate elements and validations
  */
@@ -44,15 +49,12 @@ $(document).ready(function(){
 			$("#proof-formula-input").focus();
 		}
 	});
-	
-	//bad input animation
 	$("#logic-submit").click(function(){
 		if(formulaValid == false){
 			$("#formula").val( $("#formula").val().toUpperCase() );
 			if(!isProvable( $("#formula").val())){ //CHANGE FOR FORMULA CHECKING
 			
 				//set input border to red and shake for 2 seconds when input is invalid
-				$('#formula-input-area').effect("shake", {distance:5});
 				$("#formula").css("border", "1px solid red");
 				$("#error-message").html(message); //display error message
 				$("#error-message").css("font-size", "1rem");
@@ -80,24 +82,27 @@ $(document).ready(function(){
 				
 				//add order-list to proof-area
 				var $proofList = $(' <div id="proof-list"></div> ');
-				var $proofListOlObject = $(' <ol id="proof-list-ol-object"></ol> ');
 				$("#proof-area").append($proofList);
-				$("#proof-list").append($proofListOlObject);
 				$("#proof-list").css("padding-top" , "1%");
 				
 				//add inputs fields to proof-area
 				var $proofFormulaInputGroup = $(' <div id="proof-formula-input-group" class="input-group form-group-sm"></div> '); //#div for containing the input buttons and fields
-				var 	$lineFormulaInput = $(' <input id="proof-formula-input" class="form-control" placeholder="Proof Line"> '); //#button for entering line of proof
+				var 	$lineDependenciesInput = $(' <input id="proof-dependencies-input" class="form-control" placeholder="Deps." title="Dependencies: e.g. 1,2"> '); //#input field for dependency numbers
+				var 	$lineFormulaInput = $(' <input id="proof-formula-input" class="form-control" placeholder="Proof Line (use symbols & F for ⊥)" title="Proposition: use symbols above and F for falsum"> '); //#button for entering line of proof
 				var 	$lineRuleInput = $(' <select id="proof-rule-input" class="selectpicker form-control"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select>');
-				var 	$lineDependencyInput = $(' <input id="proof-dependency-input" class="form-control" placeholder="Deps."> '); //#input field for dependency numbers
+				var 	$lineRuleJustificationInput = $(' <input id="proof-rule-justification-input" class="form-control" placeholder="Justifications" title="Rule justifications: e.g. 1,2"> '); //#input field for justification numbers
+
 				$("#proof-area").append($proofFormulaInputGroup);
+				$("#proof-formula-input-group").append($lineDependenciesInput);
 				$("#proof-formula-input-group").append($lineFormulaInput);
 				$("#proof-formula-input-group").append($lineRuleInput);
-				$("#proof-formula-input-group").append($lineDependencyInput);
-				$("#proof-formula-input").css("width","50%"); //CSS for input fields
+				$("#proof-formula-input-group").append($lineRuleJustificationInput);
+				$("#proof-dependencies-input").css("width","15%"); //CSS for input fields
+				$("#proof-formula-input").css("width","50%");
 				$("#proof-rule-input").css("width","20%");
-				$("#proof-dependency-input").css("width","20%");
-				$("#proof-formula-input-group").css("padding-left","10%");
+				$("#proof-rule-justification-input").css("width","15%");
+				$("#proof-formula-input-group").css("padding-left","5%");
+				$("#proof-formula-input-group").css("padding-right","5%");
 				$("#proof-formula-input-group").css("padding-bottom","1%");
 				$("#proof-formula-input-group").css("display" , "inline-block");//this fixed overflowing problem
 				
@@ -119,35 +124,71 @@ $(document).ready(function(){
 			}
 		}
 	});
-	
+
 	$("body").on("click", "#proof-add", function(){
-		if(!($("#proof-formula-input").val().trim().length == 0)){ //if logic inputbox is not empty
-			var currentLineId = "proof-list-li-object-"+(currentLine);
-			
-			var $proofListLiObject = $(' <li id="'+currentLineId+'" style="padding-left: 5%"></li> ');
-			$("#proof-list-ol-object").append($proofListLiObject);
-			
-			var proofLineInputValue = $("#proof-formula-input").val();
-			var proofLineRuleDepValue = $("#proof-rule-input option:selected").text() + " " + $("#proof-dependency-input").val();
-			var $objectToAddToList = $(' <span id="span-proof-line-'+currentLine+'">'+proofLineInputValue+'</span>' + 
-									   ' <span id="span-proof-ruledep-'+currentLine+'">'+proofLineRuleDepValue+'</span>');
-			
-			$("#"+currentLineId).append($objectToAddToList);
-			$("#span-proof-ruledep-" + currentLine).css("float" , "right");
-			$("#proof-list-ol-object").css("padding-right", "5%");
-			$("#proof-list-ol-object").css("padding-top", "5%");
+		var formula = $("#proof-formula-input").val().toUpperCase();
+		formula = formula.replace(new RegExp("⇒", "g"), "->");
+		formula = formula.replace(new RegExp("∧", "g"), "&");
+		formula = formula.replace(new RegExp("∨", "g"), "||");
+		formula = formula.replace(new RegExp("¬", "g"), "~");
+		formula = formula.replace(new RegExp("⊥", "g"), "F");
+		formula = formula.replace(new RegExp("f", "g"), "F");
+
+		var statement = null;
+		try {
+			statement = new tombstone.Statement( formula ); //check if attempted add on proof is wff
+		}catch (e){
+			return false;
+		}
+
+		if(!($("#proof-formula-input").val().trim().length === 0)){ //if logic inputbox is not empty && wff
+
+			var currentLineIdDivString = "proof-line-number-"+currentLine;
+			var currentLineDependencies = $('#proof-dependencies-input').val();
+			var currentLineProposition  = $('#proof-formula-input').val();
+			var currentLineRule 		= $('#proof-rule-input').val();
+			var currentLineRuleJusts	= $('#proof-rule-justification-input').val();
+
+
+			var $proofLine = $("<div id="+currentLineIdDivString+"></div>");
+			var 	$proofLineDependenciesSpan = $("<span id='span-proof-dependencies-"+currentLine+"'>"+currentLineDependencies+"</span>");
+			var 	$proofLineNumberSpan 	   = $("<span id='span-proof-number-"+currentLine+"'>("+currentLine+")</span>");
+			var 	$proofLinePropositionSpan  = $("<span id='span-proof-proposition-"+currentLine+"'>"+currentLineProposition+"</span>");
+			var 	$proofLineJustsSpan 	   = $("<span id='span-proof-justifications-"+currentLine+"'>"+currentLineRuleJusts+"</span>");
+			var 	$proofLineRuleSpan 		   = $("<span id='span-proof-rule-"+currentLine+"'>"+currentLineRule+"</span>");
+
+			$('#proof-list').append($proofLine);
+			$("#"+currentLineIdDivString).append($proofLineDependenciesSpan);
+			$("#"+currentLineIdDivString).append($proofLineNumberSpan);
+			$("#"+currentLineIdDivString).append($proofLinePropositionSpan);
+			$("#"+currentLineIdDivString).append($proofLineJustsSpan);
+			$("#"+currentLineIdDivString).append($proofLineRuleSpan);
+			$("#"+currentLineIdDivString).css("margin-right", "15%");
+
+			$('#proof-list').css('padding-left', '2%');
+			$('#proof-list').css('padding-right', '2%');
+
+			$("#span-proof-dependencies-"+currentLine).css("padding-left", "8%");
+			$("#span-proof-dependencies-"+currentLine).css("margin-right", "8%");
+
+			$("#span-proof-number-"+currentLine).css("padding-right", "5%");
+
+			//proposition in here, if need be
+
+			$("#span-proof-rule-"+currentLine).css("float", "right");
+			$("#span-proof-rule-"+currentLine).css("padding-right", "1%");
+
+			$("#span-proof-justifications-"+currentLine).css("float", "right");
 			
 			currentLine++;
 		}
 	});
-	
 	$("body").on("click", "#proof-remove", function(){
-		var currentLineId = "proof-list-li-object-" + (currentLine-1);
+		var currentLineId = "proof-line-number-" + (currentLine-1);
 		$("#" + currentLineId).remove();
 		
 		if(--currentLine === 0) currentLine = 1;
 	});
-	
 	$("body").on("click", "#proof-clear", function(){
 		currentLine = 1;
 		formulaValid = false;
@@ -156,16 +197,21 @@ $(document).ready(function(){
 		$("#proof-input-area").hide();
 		$("#formula").prop("disabled", false); //disabled
 	});
+	$("body").on("click", "#proof-check", function(){
+		//collect up each line of proof and add to proofValidator
+		//var pv = new ProofValidator(formulaTree, proof, true);
+	});
 	
-	
-	$.getScript("js/tombstone.min.js"); //preload tombstone logic library
-	//$.getScript("js/proofGen.js"); //load proof scripts
-	
+	///////////////////////////////////////////////////////////////////////////////
+	////////////////FUNCTIONS//////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
 	/**
-	*	A function to determine if a provided logic formula is provable by Natural Deduction (a tautology)
-	*	@param {String} formula - User's formula input
-	*	@return {boolean} - Returns whether or not the logic formula is a tautology
-	*/
+	 *	A function to determine if a provided logic formula is provable by Natural Deduction (a tautology)
+	 *	@param {String} formula - User's formula input
+	 *	@return {boolean} - Returns whether or not the logic formula is a tautology
+	 */
 	function isProvable (formula) {
 		//console.clear();
 		//replace all special characters with something more relatable
@@ -173,6 +219,8 @@ $(document).ready(function(){
 		formula = formula.replace(new RegExp("∧", "g"), "&");
 		formula = formula.replace(new RegExp("∨", "g"), "||");
 		formula = formula.replace(new RegExp("¬", "g"), "~");
+		formula = formula.replace(new RegExp("⊥", "g"), "F");
+		formula = formula.replace(new RegExp("f", "g"), "F");
 		
 		var statement = null;
 		var truthtable = null;
@@ -184,18 +232,36 @@ $(document).ready(function(){
 			message = "Your formula is syntactically incorrect";
 			return false;
 		}
-		
-		//convert results of truthtable string into actual array values for processing
-		var rows = truthtable.split("\n");
-		for(var i=2; i<rows.length; i++){
-			var row = [];
-			row = rows[i].split("|");
-			if(row[row.length - 2].trim() === "false"){
+
+		var rows = [];
+		if(statement.variables.indexOf("F") > -1){
+			//if contains (F)alsum, carry out our own truth table generation
+			if(!falsumCheck(statement)){
 				message = "Your formula is not a tautology, and is therefore not provable by Natural Deduction";
 				return false;
 			}
+		}else{
+			//convert results of truthtable string into actual array values for processing
+			rows = truthtable.split("\n");
+			for(var i=2; i<rows.length; i++){
+				var row = [];
+				row = rows[i].split("|");
+				if(row[row.length - 2].trim() === "false"){
+					message = "Your formula is not a tautology, and is therefore not provable by Natural Deduction";
+					return false;
+				}
+			}
 		}
+
 		
+		
+
+		//TESTING CODE
+
+		//ProofLine test
+		var pl = new ProofLine(1, 5, "(A||~A)=>(A||~A)", "impintro", 4);
+		console.log("pl test: " + pl.getLineAsString());
+
 		console.log(statement.table()); 
 		console.log(statement.symbols);
 		console.log(statement.variables);
@@ -209,30 +275,94 @@ $(document).ready(function(){
 		
 		return true;
 	}
-	
-	//(A∨¬A)⇒(A∨¬A)
-	//(¬B∧A)⇒((A∨¬A)⇒(A∨¬A))
-	// Translates formula tree to infixed logic string
-	// treeToFormula(formulaTree["tree"][0], 0) : usage
-	const operators  	= ["~" , "&" , "||" , "->"];
-	function treeToFormula(formulaTree, operandNo){
-		//base cases
-		if(!("children" in formulaTree)){ //if a literal
-			return formulaTree["name"];
-		}else if(formulaTree["name"] === "~"){ //only 1 child but is an operator (~)
-			return "~" + treeToFormula(formulaTree["children"][0], operandNo);
+
+	/**
+	 *	function to check if statement is a tautology, only when (F)alsum is used
+	 *	@param 	{Statement.Object} s  - statement object
+	 *  @return {boolean} isTautology
+	 */
+	function falsumCheck(statement){
+		var table = statementToTable(statement);
+
+		for(var i=0; i < table['rows'].length; ++i){
+			if(!table['rows'][i]['eval']){
+				return false;
+			}
 		}
-		
-		operandNo++;
-		
-		//index 1 is left most child in tree
-		var result = treeToFormula(formulaTree["children"][1], operandNo)
-				   + formulaTree["name"]
-				   + treeToFormula(formulaTree["children"][0], operandNo);
-		
-		if(operandNo === 1) //this ensures that no redundant surrounding brackets occur
-			return result;
-		return "(" + result + ")";
+		return true;
+	}
+
+	/**
+	 * Get all boolean input values for n variables.
+	 *
+	 * @example
+	 * // [ [ true, true ], [ true, false ], [ false, true ], [ false, false ] ]
+	 * getValues(2, [])
+	 *
+	 * @param   {Number} n - The number of variables.
+	 * @param   {Array} t - The array to be recursively filled.
+	 *
+	 * @returns {Array} All possible input values.
+	 */
+	function getValues (n, t) {
+	  if (t.length === n) {
+	    return [t]
+	  } else {
+	    return getValues(n, t.concat(true)).concat(getValues(n, t.concat(false)))
+	  }
+	}
+
+	/**
+	 * Get all boolean values for each variable.
+	 *
+	 * @example
+	 * // [ { P: true }, { P: false } ]
+	 * getCases (['P'])
+	 *
+	 * @param   {Array} variables - All variables in a given statement.
+	 *
+	 * @returns {Array} - An array of objects mapping variables to their possible
+	 *  values.
+	 */
+	function getCases (variables) {
+	  var numVars = variables.length //3
+	  var values = getValues(numVars, [])
+	  var numRows = values.length
+	  var rows = []
+	  var row = {}
+
+	  for (var i = 0; i < numRows; ++i) {
+	    row = {}
+	    for (var j = 0; j < numVars; ++j) {
+	    	if(variables[j] === "F")//
+	    		row[variables[j]] = false;//
+	      	else//
+	      		row[variables[j]] = values[i][j]
+	    }
+	    rows.push(row)
+	  }
+
+	  return rows
+	}
+
+	/**
+	 * Convert a statement into an object representing the structure of a table.
+	 *
+	 * @param   {Object} s - The statement to be converted.
+	 *
+	 * @returns {Object} - The table representation.
+	 */
+	function statementToTable (s) {
+	  var table = {}
+
+	  table['statement'] = s.statement
+	  table['variables'] = s.variables
+	  table['rows'] = getCases(table['variables'])
+	  for (var i = 0; i < table['rows'].length; ++i) {
+	    table['rows'][i]['eval'] = s.evaluate(table['rows'][i])
+	  }
+
+	  return table
 	}
 });
 
