@@ -49,6 +49,7 @@ class ProofValidator {
      * @return {boolean} isValid
      */
     _validate() {
+        //
         if(treeToFormula(this.formulaTree, 0) !== this.proof[this.proof.length-1].getProposition()){
             this.problemList.push("[Proof]: the last line does not match the given formula. The conclusion of your proof must result in the given formula being proven.");
             return false;
@@ -60,6 +61,11 @@ class ProofValidator {
             var currentLineProposition = currentLine.getProposition();
             var currentRule = currentLine.getRule().toLowerCase();
             var currentRuleJustification = currentLine.getRuleDependencies();
+
+            if(i+1 === this.proof.length && currentLineDeps > 0){ //last line AND there are still line dependencies
+                this._addProblemToProblemList(i, "the last line in the proof should not have dependencies. All assumptions should be discharged using inference rules by the final line of the proof.");
+                return false;
+            }
 
             switch(currentRule){
                 case "assume":
@@ -225,6 +231,58 @@ class ProofValidator {
             return false;
         }
 
+        //---------------------LINE DEP CHECKS-----------------------------//
+        let gammaDeps = dep1line.getDependencies().sort();    //Gamma
+        let dep2deps  = dep2line.getDependencies().sort();    //l
+        let dep3deps  = dep3line.getDependencies().sort();    //{l} union Delta
+        let dep4deps  = dep4line.getDependencies().sort();    //n
+        let dep5deps  = dep5line.getDependencies().sort();    //{n} union Sigma
+        let currDeps  = currentLine.getDependencies().sort(); //Gamma union Delta union Sigma
+
+        //get Delta from {l, Delta}
+        let tempDeps = dep2deps.concat(dep3deps);
+        let removeIndexes = []; //list of indexes to remove from tempDeps
+        for(var i=0; i<tempDeps.length; i++){ //list of indexes to remove from 
+            for(var j=i+1; j<tempDeps.length; j++){
+                if(tempDeps[i] === tempDeps[j]){
+                    removeIndexes.push(i);
+                    removeIndexes.push(j);
+                }
+            }
+        }
+        var deltaDeps = [];
+        for(var i=0; i<tempDeps.length; i++){//remove duplicates
+            if(removeIndexes.includes(i)) continue;
+            deltaDeps.push(tempDeps[i]);
+        }
+
+        //get Sigma from {n, Sigma}
+        tempDeps = dep4deps.concat(dep5deps);
+        removeIndexes = []; //list of indexes to remove from tempDeps
+        for(var i=0; i<tempDeps.length; i++){ //list of indexes to remove from 
+            for(var j=i+1; j<tempDeps.length; j++){
+                if(tempDeps[i] === tempDeps[j]){
+                    removeIndexes.push(i);
+                    removeIndexes.push(j);
+                }
+            }
+        }
+        var sigmaDeps = [];
+        for(var i=0; i<tempDeps.length; i++){//remove duplicates
+            if(removeIndexes.includes(i)) continue;
+            sigmaDeps.push(tempDeps[i]);
+        }
+
+        //combine all greek sets and check if the user has the same
+        var greekSet = gammaDeps.concat(deltaDeps.concat(sigmaDeps)).sort();
+        greekSet = new Set(greekSet);
+        currDeps = new Set(currDeps);
+        if(!this._areSetsEqual(greekSet, currDeps)){
+            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - each of your assumptions used as a rule justification on this line must have their dependencies discharged.");
+            return false;
+        }
+        //-----------------------END OF LINE DEP CHECK---------------------//
+
         //rule has been used validly - now discharge dep[1] and dep[3] assumptions
         var index  = this.assumeList.indexOf(dep2line.getLineNum());
         if(index !== -1)
@@ -233,6 +291,7 @@ class ProofValidator {
         index = this.assumeList.indexOf(dep4line.getLineNum());
         if(index !== -1)
             this.assumeList.splice(index, 1);
+
 
         return true;
     }
@@ -377,33 +436,40 @@ class ProofValidator {
 
 
         //check line dependencies
-        let dep1deps        = dep1line.getDependencies().sort();    //1,2
-        let dep2deps        = dep2line.getDependencies().sort();    //1,2,5,6
-        let currentLineDeps = currentLine.getDependencies().sort(); //5,6
-        let tempDeps        = dep1deps.concat(dep2deps); //list for final comparison
-        let removeIndexes   = []; //list of indexes to remove from tempDeps
-        for(var i=0; i<tempDeps.length-1; i++){ //find indexes that are duplicates
-            for(var j=i+1; j<tempDeps.length; j++){
-                if(tempDeps[i] === tempDeps[j]){
-                    removeIndexes.push(i);
-                    removeIndexes.push(j);
+        if(currentLineNumber !== this.proof.length){ //last line does not need to be checked
+            console.log("checking last line's line dependencies");
+            if(currentLine.getDependencies().length > 0){
+                this._addProblemToProblemList(currentLineNumber, "");
+                return false;   
+            }
+
+            let dep1deps        = dep1line.getDependencies().sort();    //1,2
+            let dep2deps        = dep2line.getDependencies().sort();    //1,2,5,6
+            let currentLineDeps = currentLine.getDependencies().sort(); //5,6
+            let tempDeps        = dep1deps.concat(dep2deps); //list for final comparison
+            let removeIndexes   = []; //list of indexes to remove from tempDeps
+            for(var i=0; i<tempDeps.length-1; i++){ //find indexes that are duplicates
+                for(var j=i+1; j<tempDeps.length; j++){
+                    if(tempDeps[i] === tempDeps[j]){
+                        removeIndexes.push(i);
+                        removeIndexes.push(j);
+                    }
                 }
             }
-        }
 
-        let newDeps = [];
-        for(var i=0; i<tempDeps.length; i++){ //remove duplicates
-            if(removeIndexes.includes(i)) continue;
-            newDeps.push(tempDeps[i]);
-        }
+            let newDeps = [];
+            for(var i=0; i<tempDeps.length; i++){ //remove duplicates
+                if(removeIndexes.includes(i)) continue;
+                newDeps.push(tempDeps[i]);
+            }
 
-        newDeps = new Set(newDeps);
-        currentLineDeps = new Set(currentLineDeps);
-        if(!this._areSetsEqual(newDeps, currentLineDeps)){
-            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for the implication introduction rule: remove the dependencies of the assumption justification from the second justification's dependencies.\nE.g. (7)...impIntro 5,6\nLine 5 dependencies: 1\nLine 6 dependencies: 1,2\n Line 7 dependencies: 2");
-            return false;
+            newDeps = new Set(newDeps);
+            currentLineDeps = new Set(currentLineDeps);
+            if(!this._areSetsEqual(newDeps, currentLineDeps)){ //not last line AND line deps are incorrect
+                this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for the implication introduction rule: remove the dependencies of the assumption justification from the second justification's dependencies.\nE.g. (7)...impIntro 5,6\nLine 5 dependencies: 1\nLine 6 dependencies: 1,2\n Line 7 dependencies: 2");
+                return false;
+            }
         }
-
 
         //discharge the assumption (antecedent) used for the implication introduction - remove from assumeList
         const index = this.assumeList.indexOf(dep1line.getLineNum());

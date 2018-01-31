@@ -48,7 +48,7 @@ $(document).ready(function(){
 			return false;
 		}
 
-		//proof is now valid
+		//proof structure is now valid
 		$("#errorMsg").text("");
 		$('#btnValidateProof').prop('disabled', false);
 		$('#btnValidateCancel').prop('disabled', false);
@@ -63,7 +63,11 @@ $(document).ready(function(){
 			ruleDepsArray = currentRuleDeps.replace('/\s/g', '').split(',').map(Number); //"1,2,3" = [1,2,3]
 			lineDepsArray = currentLineDeps.replace('/\s/g', '').split(',').map(Number); //"1,2,3" = [1,2,3]
 
-			proof.push(new ProofLine(lineDepsArray, i+1, proofProps[i], proofRules[i], ruleDepsArray));
+			if(i+1 === proofProps.length)
+				proof.push(new ProofLine([], i+1, proofProps[i], proofRules[i], ruleDepsArray));
+			else
+				proof.push(new ProofLine(lineDepsArray, i+1, proofProps[i], proofRules[i], ruleDepsArray));
+
 			$("#proofString").text($("#proofString").text() + proof[i].getLineAsString() + "\n");
 		}
 
