@@ -49,7 +49,6 @@ $(document).ready(function(){
 			$("#proof-formula-input").focus();
 		}
 	});
-	
 	$("#logic-submit").click(function(){
 		if(formulaValid == false){
 			$("#formula").val( $("#formula").val().toUpperCase() );
@@ -125,7 +124,7 @@ $(document).ready(function(){
 			}
 		}
 	});
-	
+
 	$("body").on("click", "#proof-add", function(){
 		var formula = $("#proof-formula-input").val().toUpperCase();
 		formula = formula.replace(new RegExp("⇒", "g"), "->");
@@ -184,14 +183,12 @@ $(document).ready(function(){
 			currentLine++;
 		}
 	});
-	
 	$("body").on("click", "#proof-remove", function(){
 		var currentLineId = "proof-line-number-" + (currentLine-1);
 		$("#" + currentLineId).remove();
 		
 		if(--currentLine === 0) currentLine = 1;
 	});
-	
 	$("body").on("click", "#proof-clear", function(){
 		currentLine = 1;
 		formulaValid = false;
@@ -200,7 +197,10 @@ $(document).ready(function(){
 		$("#proof-input-area").hide();
 		$("#formula").prop("disabled", false); //disabled
 	});
-	
+	$("body").on("click", "#proof-check", function(){
+		//collect up each line of proof and add to proofValidator
+		//var pv = new ProofValidator(formulaTree, proof, true);
+	});
 	
 	///////////////////////////////////////////////////////////////////////////////
 	////////////////FUNCTIONS//////////////////////////////////////////////////////
