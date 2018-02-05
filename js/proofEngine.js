@@ -81,31 +81,30 @@ $(document).ready(function(){
 				$("#proof-input-area").css("margin-left" , "15%");
 				$("#proof-input-area").css("margin-right" , "15%");
 				
-				//add order-list to proof-area
-				var $proofList = $(' <div id="proof-list"></div> ');
-				$("#proof-area").append($proofList);
-				$("#proof-list").css("padding-top" , "1%");
-				
 				//add inputs fields to proof-area
-				var $proofFormulaInputGroup = $(' <div id="proof-formula-input-group" class="input-group form-group-sm"></div> '); //#div for containing the input buttons and fields
-				var 	$lineDependenciesInput = $(' <input id="proof-dependencies-input" class="form-control" placeholder="Deps." title="Dependencies: e.g. 1,2"> '); //#input field for dependency numbers
-				var 	$lineFormulaInput = $(' <input id="proof-formula-input" class="form-control" placeholder="Proof Line (use symbols & F for ⊥)" title="Proposition: use symbols above and F for falsum"> '); //#button for entering line of proof
-				var 	$lineRuleInput = $(' <select id="proof-rule-input" class="selectpicker form-control"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select>');
-				var 	$lineRuleJustificationInput = $(' <input id="proof-rule-justification-input" class="form-control" placeholder="Justifications" title="Rule justifications: e.g. 1,2"> '); //#input field for justification numbers
+				var $lineDependenciesInput = $(' <input id="proof-dependencies-input" class="form-control" placeholder="Deps." title="Dependencies: e.g. 1,2"> '); //#input field for dependency numbers
+				var $lineFormulaInput = $(' <input id="proof-formula-input" class="form-control" placeholder="Proof Line (use symbols & F for ⊥)" title="Proposition: use symbols above and F for falsum"> '); //#button for entering line of proof
+				var $lineRuleInput = $(' <select id="proof-rule-input" class="selectpicker form-control"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select>');
+				var $lineRuleJustificationInput = $(' <input id="proof-rule-justification-input" class="form-control" placeholder="Justifications" title="Rule justifications: e.g. 1,2"> '); //#input field for justification numbers
 
-				$("#proof-area").append($proofFormulaInputGroup);
-				$("#proof-formula-input-group").append($lineDependenciesInput);
-				$("#proof-formula-input-group").append($lineFormulaInput);
-				$("#proof-formula-input-group").append($lineRuleInput);
-				$("#proof-formula-input-group").append($lineRuleJustificationInput);
-				$("#proof-dependencies-input").css("width","15%"); //CSS for input fields
-				$("#proof-formula-input").css("width","50%");
-				$("#proof-rule-input").css("width","20%");
-				$("#proof-rule-justification-input").css("width","15%");
-				$("#proof-formula-input-group").css("padding-left","5%");
-				$("#proof-formula-input-group").css("padding-right","5%");
-				$("#proof-formula-input-group").css("padding-bottom","1%");
-				$("#proof-formula-input-group").css("display" , "inline-block");//this fixed overflowing problem
+				//add table structure to proof area
+				var $proofTable = $('<table id="proof-table" style="border: 1px"></table>');
+				$("#proof-area").append($proofTable);
+
+				//add row with data
+				var newRow = $("<tr>");
+				var cols = "";
+				cols += '<td style="width: 10%; padding-left: 1%"><input class="form-control input-sm" placeholder="Deps." title="Dependencies: e.g. 1,2"></td>';
+				cols += '<td style="width: 40%"><input class="form-control input-sm" placeholder="Proof Line (use symbols & F for ⊥)" title="Proposition: use symbols above and F for falsum"></td>';
+				cols += '<td><select class="selectpicker form-control input-sm"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
+				cols += '<td style="width: 10%; padding-right: 1%"><input class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
+				cols += '<td> <button class="btn-danger btn-sm">x</button> </td>';
+				cols += '<td> <button class="btn-info btn-sm">↑</button> </td>';
+				cols += '<td> <button class="btn-info btn-sm">↓</button> </td>';
+				newRow.append(cols);
+				//newRow.insertAfter($(this).parents().closest('tr')); //EXPERIMENT WITH THIS
+				$proofTable.append(newRow);
+
 				
 				//add proof buttons
 				var $addButton = $(' <button id="proof-add" class="btn btn-info">add</button> '); //#button for adding line
@@ -469,7 +468,7 @@ class ProofValidator {
      * @return {boolean} isValid
      */
     _validate() {
-        //
+        
         if(treeToFormula(this.formulaTree, 0) !== this.proof[this.proof.length-1].getProposition()){
             this.problemList.push("[Proof]: the last line does not match the given formula. The conclusion of your proof must result in the given formula being proven.");
             return false;
