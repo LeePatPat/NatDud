@@ -16,7 +16,7 @@ $(document).ready(function(){
 	//logic button actions
 	$("#logic-imply").click(function(){
 		if(!formulaValid){
-			$("#formula").val($("#formula").val() + "⇒");
+			$("#formula").val($("#formula").val() + "→");
 			$("#formula").focus();
 		}else{
 			$("#proof-formula-input").val($("#proof-formula-input").val() + "⇒");
@@ -216,7 +216,7 @@ $(document).ready(function(){
 	function isProvable (formula) {
 		//console.clear();
 		//replace all special characters with something more relatable
-		formula = formula.replace(new RegExp("⇒", "g"), "->");
+		formula = formula.replace(new RegExp("→", "g"), "->");
 		formula = formula.replace(new RegExp("∧", "g"), "&");
 		formula = formula.replace(new RegExp("∨", "g"), "||");
 		formula = formula.replace(new RegExp("¬", "g"), "~");
@@ -253,8 +253,6 @@ $(document).ready(function(){
 				}
 			}
 		}
-
-		
 		
 
 		//TESTING CODE
@@ -270,10 +268,10 @@ $(document).ready(function(){
 		console.log(statement.tree["tree"][0]);
 		console.log("Statement: " + statement.statement);
 		var f = treeToFormula(statement.tree["tree"][0], 0);
-		console.log(f);
-		console.log("Matches with original formula: " + (f===formula))
+		console.log("New formula?: " + f);
+		console.log("Matches with original formula: " + (f===formula));
 		console.log(JSON.stringify(statement.tree));
-		
+
 		return true;
 	}
 
