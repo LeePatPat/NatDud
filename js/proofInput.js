@@ -18,7 +18,7 @@ $(document).ready(function(){
 			$("#formula").val($("#formula").val() + "→");
 			$("#formula").focus();
 		}else{
-			$("#proof-formula-input").val($("#proof-formula-input").val() + "⇒");
+			$("#proof-formula-input").val($("#proof-formula-input").val() + "→");
 			$("#proof-formula-input").focus();
 		}
 	});
