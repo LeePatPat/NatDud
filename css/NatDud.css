@@ -61,6 +61,12 @@ body {
 	margin-top: 1%;
 	margin-bottom: 1%;
 }
+td{
+	text-align: center;
+}
+tr{
+	padding-top: 1%;
+}
 @font-face {
 	font-family: 'Simplifica';
 	font-style: normal;

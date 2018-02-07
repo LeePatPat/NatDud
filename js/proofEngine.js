@@ -91,40 +91,41 @@ $(document).ready(function(){
 				var $proofTable = $('<table id="proof-table" style="border: 1px"></table>');
 				$("#proof-area").append($proofTable);
 
-				//add row with data
+				//add fresh row to table for user input
 				var newRow = $("<tr>");
-				var cols = "";
-				cols += '<td style="width: 10%; padding-left: 1%"><input class="form-control input-sm" placeholder="Deps." title="Dependencies: e.g. 1,2"></td>';
-				cols += '<td style="width: 40%"><input class="form-control input-sm" placeholder="Proof Line (use symbols & F for ⊥)" title="Proposition: use symbols above and F for falsum"></td>';
+				var cols = getCleanRow();
+				newRow.append(cols);
+				$proofTable.append(newRow);
+
+				//add final row of proof to proof-table
+				newRow = $("<tr>");
+				cols = "";
+				cols += '<td style="width: 10%; padding-left: 1%"><input class="form-control input-sm" placeholder="Deps." title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
+				cols += '<td style="width: 40%"><input class="form-control input-sm" placeholder="Proof Line (use symbols & F for ⊥)" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
 				cols += '<td><select class="selectpicker form-control input-sm"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
-				cols += '<td style="width: 10%; padding-right: 1%"><input class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
-				cols += '<td> <button class="btn-danger btn-sm">x</button> </td>';
-				cols += '<td> <button class="btn-info btn-sm">↑</button> </td>';
-				cols += '<td> <button class="btn-info btn-sm">↓</button> </td>';
+				cols += '<td style="width: 10%"><input class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
+				cols += '<td></td>';
+				cols += '<td> <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
+				cols += '<td></td>';
 				newRow.append(cols);
 				//newRow.insertAfter($(this).parents().closest('tr')); //EXPERIMENT WITH THIS
 				$proofTable.append(newRow);
 
 				
 				//add proof buttons
-				var $addButton = $(' <button id="proof-add" class="btn btn-info">add</button> '); //#button for adding line
-				var $removeButton = $(' <button id="proof-remove" class="btn btn-info">remove</button> '); //button for last line added
 				var $checkButton = $(' <button id="proof-check" class="btn btn-success">check</button> '); //button for sending proof for checking
 				var $clearButton = $(' <button id="proof-clear" class="btn btn-danger">clear</button> '); //button for returning to the formula input
-				$("#proof-buttons").append($addButton);
-				$("#proof-buttons").append($removeButton);
 				$("#proof-buttons").append($checkButton);
 				$("#proof-buttons").append($clearButton);
 				$("#proof-buttons").css("padding-left" , "1rem");
 				$("#proof-buttons").css("padding-right" , "1rem");
 				$("#proof-buttons").css("padding-top" , "1%");
-				$("#proof-add").css("margin-right" , "1rem");
-				$("#proof-remove").css("margin-right" , "1rem");
 				$("#proof-clear").css("float" , "right");
 			}
 		}
 	});
 
+	//add, remove, check, clear button event listeners
 	$("body").on("click", "#proof-add", function(){
 		var formula = $("#proof-formula-input").val().toUpperCase();
 		formula = formula.replace(new RegExp("⇒", "g"), "->");
@@ -201,11 +202,50 @@ $(document).ready(function(){
 		//collect up each line of proof and add to proofValidator
 		//var pv = new ProofValidator(formulaTree, proof, true);
 	});
-	
+
+	//row button actions (delete row, add above, add below)
+	$("#proof-area").on("click", "#proof-table .btnDelRow", function(){
+		console.log("remove row clicked");
+		if( $("#proof-table > tr").length > 2 ){
+			$(this).closest("tr").remove(); //remove the closest row to the button
+		}
+	});
+	$("#proof-area").on("click", "#proof-table .btnAddRowAbove", function(){
+		console.log("btnAddRowAbove clicked");
+		var newRow = $("<tr>");
+		var cols = getCleanRow();
+		newRow.append(cols);
+		newRow.insertBefore($(this).parents().closest("tr")); //insert fresh row before current row
+	});
+	$("#proof-area").on("click", "#proof-table .btnAddRowBelow", function(){
+		console.log("btnAddRowBelow clicked");
+		var newRow = $("<tr>");
+		var cols = getCleanRow();
+		newRow.append(cols);
+		newRow.insertAfter($(this).parents().closest("tr")); //insert fresh row after current row
+	});
+
+
 	///////////////////////////////////////////////////////////////////////////////
 	////////////////FUNCTIONS//////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 *	A function to get a fresh row string for 
+	 *	@return {String} - Returns a row of inputs for the user to use
+	 */
+	function getCleanRow(){
+		var cols = "";
+			cols += '<td style="width: 10%; padding-left: 1%"><input class="form-control input-sm" placeholder="Deps." title="Dependencies: e.g. 1,2"></td>';
+			cols += '<td style="width: 40%"><input class="form-control input-sm" placeholder="Proof Line (use symbols or F for ⊥)" title="Proposition: use symbols above or F for falsum"></td>';
+			cols += '<td><select class="selectpicker form-control input-sm"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
+			cols += '<td style="width: 10%"><input class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
+			cols += '<td> <button class="btn-danger btn-sm btnDelRow">x</button> </td>';
+			cols += '<td> <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
+			cols += '<td style="padding-right: 1%"> <button class="btn-info btn-sm btnAddRowBelow">↓</button> </td>';
+		return cols;
+	}
 
 	/**
 	 *	A function to determine if a provided logic formula is provable by Natural Deduction (a tautology)
@@ -468,7 +508,7 @@ class ProofValidator {
      * @return {boolean} isValid
      */
     _validate() {
-        
+        //
         if(treeToFormula(this.formulaTree, 0) !== this.proof[this.proof.length-1].getProposition()){
             this.problemList.push("[Proof]: the last line does not match the given formula. The conclusion of your proof must result in the given formula being proven.");
             return false;
