@@ -4,11 +4,12 @@ var ProofLine = require('./proofLine.js');
 var tombstone = require('./tombstone.min.js');
 var ProofValidator = require('./proofValidator.js');
 var $ = require('jquery');
+
 /*
  *	JQuery to manipulate elements and validations
  */
 $(document).ready(function(){
-	var formulaValid 	= false;
+	var formulaValid 	= false; //true is the formula has already been accepted
 	var formulaString 	= "";
 	var currentLine 	= 1; //current line of the proof
 	var message 		= ""; //error message to be displayed
@@ -53,20 +54,16 @@ $(document).ready(function(){
 	$("#logic-submit").click(function(){
 		if(formulaValid == false){
 			$("#formula").val( $("#formula").val().toUpperCase() );
-			if(!isProvable( $("#formula").val())){ //CHANGE FOR FORMULA CHECKING
-			
-				//set input border to red and shake for 2 seconds when input is invalid
-				$("#formula").css("border", "1px solid red");
-				$("#error-message").html(message); //display error message
-				$("#error-message").css("font-size", "1rem");
-				$("#error-message").css("margin-left", "1rem");
-				$("#error-message").css("margin-right", "1rem"); 
-				setTimeout(function(){
-					$("#formula").css("border", "1px solid #cccccc");
-					$("#error-message").html("");
-				} , 2000);
-				
-			}else{
+			formulaString = $("#formula").val();
+
+			if(!isProvable( $("#formula").val())){ //if the formula is not a tautology
+				displayErrorMessage(message, 2000);
+			}
+			else if(to103wff(formulaString) !== formulaString){ //if the formula is not a CS103 WFF
+				message = "Your formula is not a WFF. Perhaps you meant: " + toNatdudString(to103wff(formulaString)) + " - remember to ensure parentheses are used correctly.";
+				displayErrorMessage(message, 6000);
+			}
+			else{
 				formulaValid = true;
 				formulaString = $("#formula").val();
 				$("#formula").prop("disabled", true); //disabled
@@ -81,32 +78,21 @@ $(document).ready(function(){
 				$("#proof-input-area").css("margin-left" , "15%");
 				$("#proof-input-area").css("margin-right" , "15%");
 				
-				//add inputs fields to proof-area
-				var $lineDependenciesInput = $(' <input id="proof-dependencies-input" class="form-control" placeholder="Deps." title="Dependencies: e.g. 1,2"> '); //#input field for dependency numbers
-				var $lineFormulaInput = $(' <input id="proof-formula-input" class="form-control" placeholder="Proof Line (use symbols & F for ⊥)" title="Proposition: use symbols above and F for falsum"> '); //#button for entering line of proof
-				var $lineRuleInput = $(' <select id="proof-rule-input" class="selectpicker form-control"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select>');
-				var $lineRuleJustificationInput = $(' <input id="proof-rule-justification-input" class="form-control" placeholder="Justifications" title="Rule justifications: e.g. 1,2"> '); //#input field for justification numbers
 
 				//add table structure to proof area
 				var $proofTable = $('<table id="proof-table" style="border: 1px"></table>');
 				$("#proof-area").append($proofTable);
 
-				//add fresh row to table for user input
-				var newRow = $("<tr>");
-				var cols = getCleanRow();
-				newRow.append(cols);
-				$proofTable.append(newRow);
-
 				//add final row of proof to proof-table
-				newRow = $("<tr>");
-				cols = "";
-				cols += '<td style="width: 10%; padding-left: 1%"><input class="form-control input-sm" placeholder="Deps." title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
+				var newRow = $("<tr>");
+				var cols = "";
+				cols += '<td style="width: 10%"><input class="form-control input-sm" placeholder="Deps." title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
 				cols += '<td style="width: 40%"><input class="form-control input-sm" placeholder="Proof Line (use symbols & F for ⊥)" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
-				cols += '<td><select class="selectpicker form-control input-sm"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
+				cols += '<td><select class="selectpicker form-control input-sm"><option disabled selected value>select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
 				cols += '<td style="width: 10%"><input class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
-				cols += '<td></td>';
+				cols += '<td style="visibility: hidden"> <button class="btn-danger btn-sm btnDelRow">x</button> </td>';
 				cols += '<td> <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
-				cols += '<td></td>';
+				cols += '<td style="visibility: hidden"> <button class="btn-info btn-sm btnAddRowBelow">↓</button> </td>';
 				newRow.append(cols);
 				//newRow.insertAfter($(this).parents().closest('tr')); //EXPERIMENT WITH THIS
 				$proofTable.append(newRow);
@@ -206,7 +192,7 @@ $(document).ready(function(){
 	//row button actions (delete row, add above, add below)
 	$("#proof-area").on("click", "#proof-table .btnDelRow", function(){
 		console.log("remove row clicked");
-		if( $("#proof-table > tr").length > 2 ){
+		if( $("#proof-table > tr").length > 1 ){
 			$(this).closest("tr").remove(); //remove the closest row to the button
 		}
 	});
@@ -232,19 +218,82 @@ $(document).ready(function(){
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
+	 *	A function to change the given formula string to CS103's WFF standards
+	 *	@param  {String}  formula    - formula to change to 103's WFF standards
+	 *	@return {String}  newFormula - formula transformed to CS103 WFF
+	 */
+	function to103wff(formula){
+		//convert to tombstone-compaitible formula string
+		formula = toTombstoneString(formula); //A->A->A
+
+		let statement  = new tombstone.Statement(formula);
+
+		formula = treeToFormula(statement.tree["tree"][0], 0); //A->(A->A)
+
+		return formula;
+	}
+
+	/**
+	 *	A function to display an error message to the user for a certain amount of time
+	 *	@param {String} errMessage - message to be displayed to the user
+	 *	@param {Number} timing     - amount of time for the message to be displayed for
+	 */
+	function displayErrorMessage(errMessage, timing){
+		//set input border to red and display message for 2 seconds when input is invalid
+		$("#formula").css("border", "1px solid red");
+		$("#error-message").html(errMessage); //display error message
+		$("#error-message").css("font-size", "1rem");
+		$("#error-message").css("margin-left", "1rem");
+		$("#error-message").css("margin-right", "1rem"); 
+		setTimeout(function(){
+			$("#formula").css("border", "1px solid #cccccc");
+			$("#error-message").html("");
+		} , timing);
+	}
+
+	/**
 	 *	A function to get a fresh row string for 
 	 *	@return {String} - Returns a row of inputs for the user to use
 	 */
 	function getCleanRow(){
 		var cols = "";
-			cols += '<td style="width: 10%; padding-left: 1%"><input class="form-control input-sm" placeholder="Deps." title="Dependencies: e.g. 1,2"></td>';
+			cols += '<td style="width: 10%"><input class="form-control input-sm" placeholder="Deps." title="Dependencies: e.g. 1,2"></td>';
 			cols += '<td style="width: 40%"><input class="form-control input-sm" placeholder="Proof Line (use symbols or F for ⊥)" title="Proposition: use symbols above or F for falsum"></td>';
-			cols += '<td><select class="selectpicker form-control input-sm"><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">⇒-intro</option><option value="impElim">⇒-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
+			cols += '<td><select class="selectpicker form-control input-sm"><option style="display: none">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
 			cols += '<td style="width: 10%"><input class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
 			cols += '<td> <button class="btn-danger btn-sm btnDelRow">x</button> </td>';
 			cols += '<td> <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
-			cols += '<td style="padding-right: 1%"> <button class="btn-info btn-sm btnAddRowBelow">↓</button> </td>';
+			cols += '<td> <button class="btn-info btn-sm btnAddRowBelow">↓</button> </td>';
 		return cols;
+	}
+
+	/**
+	 *	A function that changes a formula with special symbols into a Tombstone-compatitible string
+	 *	@param {String} formula 	- NatDud formula string
+	 *	@return {String} newFormula - A tombstone-compatible string
+	 */	
+	function toTombstoneString(formula){
+		formula = formula.replace(new RegExp("→", "g"), "->");
+		formula = formula.replace(new RegExp("∧", "g"), "&");
+		formula = formula.replace(new RegExp("∨", "g"), "||");
+		formula = formula.replace(new RegExp("¬", "g"), "~");
+		formula = formula.replace(new RegExp("⊥", "g"), "F");
+		formula = formula.replace(new RegExp("f", "g"), "F");
+		return formula;
+	}
+
+	/**
+	 *	A function that changes a formula with a tombstome-compatible string to a natdud format string
+	 *	@param {String} formula 	- tombstone string
+	 *	@return {String} newFormula - A tombstone-compatible string
+	 */	
+	function toNatdudString(formula){
+		formula = formula.replace(new RegExp("->", "g"), "→"); //yes
+		formula = formula.replace(new RegExp("&", "g"), "∧"); //
+		formula = formula.replace(new RegExp(/\|\|/, "g"), "∨"); //
+		formula = formula.replace(new RegExp("~", "g"), "¬"); //
+		formula = formula.replace(new RegExp("F", "g"), "⊥"); //
+		return formula;
 	}
 
 	/**
@@ -253,15 +302,9 @@ $(document).ready(function(){
 	 *	@return {boolean} - Returns whether or not the logic formula is a tautology
 	 */
 	function isProvable (formula) {
-		//console.clear();
-		//replace all special characters with something more relatable
-		formula = formula.replace(new RegExp("→", "g"), "->");
-		formula = formula.replace(new RegExp("∧", "g"), "&");
-		formula = formula.replace(new RegExp("∨", "g"), "||");
-		formula = formula.replace(new RegExp("¬", "g"), "~");
-		formula = formula.replace(new RegExp("⊥", "g"), "F");
-		formula = formula.replace(new RegExp("f", "g"), "F");
-		
+		//convert to tombstone-compatible formula string
+		formula = toTombstoneString(formula);
+
 		var statement = null;
 		var truthtable = null;
 		try {
@@ -307,8 +350,10 @@ $(document).ready(function(){
 		console.log(statement.tree["tree"][0]);
 		console.log("Statement: " + statement.statement);
 		var f = treeToFormula(statement.tree["tree"][0], 0);
+		console.log("formulaString: " + formulaString);
 		console.log("New formula?: " + f);
 		console.log("Matches with original formula: " + (f===formula));
+		console.log("Matches with formulaString: " + (f===formulaString));
 		console.log(JSON.stringify(statement.tree));
 
 		return true;
@@ -319,7 +364,7 @@ $(document).ready(function(){
 	 *	@param 	{Statement.Object} s  - statement object
 	 *  @return {boolean} isTautology
 	 */
-	function falsumCheck(statement){
+	function falsumCheck(statement) {
 		var table = statementToTable(statement);
 
 		for(var i=0; i < table['rows'].length; ++i){
