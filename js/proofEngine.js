@@ -59,7 +59,7 @@ $(document).ready(function(){
 			if(!isProvable( $("#formula").val())){ //if the formula is not a tautology
 				displayErrorMessage(message, 2000);
 			}
-			else if(to103wff(formulaString) !== formulaString){ //if the formula is not a CS103 WFF
+			else if(toNatdudString(to103wff(formulaString)) !== formulaString){ //if the formula is not a CS103 WFF
 				message = "Your formula is not a WFF. Perhaps you meant: " + toNatdudString(to103wff(formulaString)) + " - remember to ensure parentheses are used correctly.";
 				displayErrorMessage(message, 6000);
 			}
@@ -86,21 +86,20 @@ $(document).ready(function(){
 				//add final row of proof to proof-table
 				var newRow = $("<tr>");
 				var cols = "";
-				cols += '<td style="width: 10%"><input class="form-control input-sm" placeholder="Deps." title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
-				cols += '<td style="width: 40%"><input class="form-control input-sm" placeholder="Proof Line (use symbols & F for ⊥)" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
-				cols += '<td><select class="selectpicker form-control input-sm"><option disabled selected value>select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
-				cols += '<td style="width: 10%"><input class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
+				cols += '<td style="width: 10%">		 <input name="dependencyInput" class="form-control input-sm" placeholder="Deps." title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
+				cols += '<td style="width: 40%">		 <input name="proofLineInput" class="form-control input-sm" placeholder="Proof Line (use symbols & F for ⊥)" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
+				cols += '<td>							 <select name="ruleInput" class="selectpicker form-control input-sm"><option disabled selected value="null">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
+				cols += '<td style="width: 10%">		 <input name="justificationInput" class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
 				cols += '<td style="visibility: hidden"> <button class="btn-danger btn-sm btnDelRow">x</button> </td>';
-				cols += '<td> <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
+				cols += '<td> 							 <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
 				cols += '<td style="visibility: hidden"> <button class="btn-info btn-sm btnAddRowBelow">↓</button> </td>';
 				newRow.append(cols);
-				//newRow.insertAfter($(this).parents().closest('tr')); //EXPERIMENT WITH THIS
 				$proofTable.append(newRow);
 
 				
 				//add proof buttons
 				var $checkButton = $(' <button id="proof-check" class="btn btn-success">check</button> '); //button for sending proof for checking
-				var $clearButton = $(' <button id="proof-clear" class="btn btn-danger">clear</button> '); //button for returning to the formula input
+				var $clearButton = $(' <button id="proof-clear" class="btn btn-danger">clear</button> ');  //button for returning to the formula input
 				$("#proof-buttons").append($checkButton);
 				$("#proof-buttons").append($clearButton);
 				$("#proof-buttons").css("padding-left" , "1rem");
@@ -185,8 +184,20 @@ $(document).ready(function(){
 		$("#formula").prop("disabled", false); //disabled
 	});
 	$("body").on("click", "#proof-check", function(){
-		//collect up each line of proof and add to proofValidator
-		//var pv = new ProofValidator(formulaTree, proof, true);
+		//loop through each line of the proof table and display feedback
+		var proofData = [],
+			proofValid = true;
+		$("#proof-table tr").each(function(i, row){
+			var $row   = $(row),
+				$deps  = $row.find('input[name*="dependencyInput"]').val(),
+				$line  = $row.find('input[name*="proofLineInput"]').val().toUpperCase(),
+				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase(),
+				$just  = $row.find('input[name*="justificationInput"]').val();
+			var str = $deps + " " + $line + " " + $rule + " " + $just;
+			proofData.push(str);
+		});
+
+		console.log(proofData);
 	});
 
 	//row button actions (delete row, add above, add below)
@@ -257,10 +268,10 @@ $(document).ready(function(){
 	 */
 	function getCleanRow(){
 		var cols = "";
-			cols += '<td style="width: 10%"><input class="form-control input-sm" placeholder="Deps." title="Dependencies: e.g. 1,2"></td>';
-			cols += '<td style="width: 40%"><input class="form-control input-sm" placeholder="Proof Line (use symbols or F for ⊥)" title="Proposition: use symbols above or F for falsum"></td>';
-			cols += '<td><select class="selectpicker form-control input-sm"><option style="display: none">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
-			cols += '<td style="width: 10%"><input class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
+			cols += '<td style="width: 10%">	<input name="dependencyInput" class="form-control input-sm" placeholder="Deps." title="Dependencies: e.g. 1,2"></td>';
+			cols += '<td style="width: 40%">	<input name="proofLineInput" class="form-control input-sm" placeholder="Proof Line (use symbols or F for ⊥)" title="Proposition: use symbols above or F for falsum"></td>';
+			cols += '<td>						<select name="ruleInput" class="selectpicker form-control input-sm"><option value="null" style="display: none">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
+			cols += '<td style="width: 10%">	<input name="justificationInput" class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
 			cols += '<td> <button class="btn-danger btn-sm btnDelRow">x</button> </td>';
 			cols += '<td> <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
 			cols += '<td> <button class="btn-info btn-sm btnAddRowBelow">↓</button> </td>';
