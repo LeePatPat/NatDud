@@ -126,7 +126,7 @@ class ProofValidator {
                         return false;
                     break;
                 default:
-                    console.error("Error in ProofValidator: undetermined case executed.");
+                    this._addProblemToProblemList(i, "You must select a rule from the options given.");
                     return false;
             }
         }
@@ -143,6 +143,7 @@ class ProofValidator {
             return false;
         }
 
+        this.problemList.push("Proof is valid! Rule usage is valid, line dependencies are correct and all assumptions are discharged.");
         return true; //all assumptions discharged, line dependencies are correct and use of rules are valid; proof is valid
     }
 
