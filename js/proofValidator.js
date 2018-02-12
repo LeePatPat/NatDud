@@ -65,6 +65,9 @@ class ProofValidator {
             if(i+1 === this.proof.length && currentLineDeps > 0){ //last line AND there are still line dependencies
                 this._addProblemToProblemList(i, "the last line in the proof should not have dependencies. All assumptions should be discharged using inference rules by the final line of the proof.");
                 return false;
+            }else if(currentLineProposition.replace(/ /g,'') === ""){
+                this._addProblemToProblemList(i, "proof lines cannot be empty.");
+                return false;
             }
 
             switch(currentRule){
