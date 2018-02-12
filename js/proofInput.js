@@ -1,6 +1,6 @@
 var treeToFormula = require('./treeToFormula.js');
 var ProofLine = require('./proofLine.js');
-var tombstone = require('./tombstone.min.js');
+var tombstone = require('./tombstone.min.js'); //new tombstone.Statement(formula);
 var ProofValidator = require('./proofValidator.js');
 var $ = require('jquery');
 
@@ -12,15 +12,16 @@ $(document).ready(function(){
 	var formulaString 	= "";
 	var currentLine 	= 1; //current line of the proof
 	var message 		= ""; //error message to be displayed
+	var $lastFocus 		= null; //keeps last input 
 	
 	//logic button actions
-	$("#logic-imply").click(function(){
+	$("#logic-imply").click(function(e){
 		if(!formulaValid){
 			$("#formula").val($("#formula").val() + "→");
 			$("#formula").focus();
 		}else{
-			$("#proof-formula-input").val($("#proof-formula-input").val() + "→");
-			$("#proof-formula-input").focus();
+			$lastFocus.val( $lastFocus.val() + "→" );
+			$lastFocus.focus();
 		}
 	});
 	$("#logic-and").click(function(){
@@ -28,8 +29,8 @@ $(document).ready(function(){
 			$("#formula").val($("#formula").val() + "∧");
 			$("#formula").focus();
 		}else{
-			$("#proof-formula-input").val($("#proof-formula-input").val() + "∧");
-			$("#proof-formula-input").focus();
+			$lastFocus.val( $lastFocus.val() + "∧" );
+			$lastFocus.focus();
 		}
 	});
 	$("#logic-or").click(function(){
@@ -37,8 +38,8 @@ $(document).ready(function(){
 			$("#formula").val($("#formula").val() + "∨");
 			$("#formula").focus();
 		}else{
-			$("#proof-formula-input").val($("#proof-formula-input").val() + "∨");
-			$("#proof-formula-input").focus();
+			$lastFocus.val( $lastFocus.val() + "∨" );
+			$lastFocus.focus();
 		}
 	});
 	$("#logic-not").click(function(){
@@ -46,13 +47,13 @@ $(document).ready(function(){
 			$("#formula").val($("#formula").val() + "¬");
 			$("#formula").focus();
 		}else{
-			$("#proof-formula-input").val($("#proof-formula-input").val() + "¬");
-			$("#proof-formula-input").focus();
+			$lastFocus.val( $lastFocus.val() + "¬" );
+			$lastFocus.focus();
 		}
 	});
 	$("#logic-submit").click(function(){
 		if(formulaValid == false){
-			$("#formula").val( $("#formula").val().toUpperCase() );
+			$("#formula").val( $("#formula").val().toUpperCase().replace(/\s/g,'') );
 			formulaString = $("#formula").val();
 
 			if(!isProvable( $("#formula").val())){ //if the formula is not a tautology
@@ -107,6 +108,11 @@ $(document).ready(function(){
 				$("#proof-clear").css("float" , "right");
 			}
 		}
+	});
+
+	//on blur event listener. let's user add symbols to proof input box
+	$("#proof-area").on("blur", "input[name='proofLineInput']", function(){
+		$lastFocus = $(this).closest("input");
 	});
 
 	//add, remove, check, clear button event listeners
@@ -179,42 +185,52 @@ $(document).ready(function(){
 		formulaValid = false;
 		$("#proof-area").empty();
 		$("#proof-buttons").empty();
+		$("#feedback-area").hide();
 		$("#proof-input-area").hide();
 		$("#formula").prop("disabled", false); //disabled
 	});
 	$("body").on("click", "#proof-check", function(){
 		//loop through each line of the proof table and display feedback
-		var proofData = [],
+		var proofData = [], //array of ProofLine objects. Aka the proof.
 			proofValid = true;
+			i = 1;
 		$("#proof-table tr").each(function(i, row){
 			var $row   = $(row),
-				$deps  = $row.find('input[name*="dependencyInput"]').val(),
-				$line  = $row.find('input[name*="proofLineInput"]').val().toUpperCase(),
-				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase(),
-				$just  = $row.find('input[name*="justificationInput"]').val();
+				$deps  = $row.find('input[name*="dependencyInput"]').val().replace(/\s/g,''),
+				$line  = $row.find('input[name*="proofLineInput"]').val().toUpperCase().replace(/\s/g,''),
+				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().toUpperCase().replace(/\s/g,''),
+				$just  = $row.find('input[name*="justificationInput"]').val().toUpperCase().replace(/\s/g,'');
 			var str = $deps + " " + $line + " " + $rule + " " + $just;
-			proofData.push(str);
+
+			$row.find('input[name*="proofLineInput"]').val( $line );
+			$deps = $deps.split(',');
+			$line = toTombstoneString($line);
+			$just = $just.split(',');
+
+			proofData.push(new ProofLine($deps, i++, $line, $rule, $just));
 		});
 
-		console.log(proofData);
+		for(var j=0; j<proofData.length; j++)
+			console.log(proofData[j].getLineAsString());
+
+
+		var proof_validator = new ProofValidator(new tombstone.Statement(toTombstoneString(formulaString)).tree["tree"][0], proofData, true);
+		displayFeedback( proof_validator.getFeedback() );
 	});
 
 	//row button actions (delete row, add above, add below)
 	$("#proof-area").on("click", "#proof-table .btnDelRow", function(){
-		console.log("remove row clicked");
 		if( $("#proof-table > tr").length > 1 ){
 			$(this).closest("tr").remove(); //remove the closest row to the button
 		}
 	});
 	$("#proof-area").on("click", "#proof-table .btnAddRowAbove", function(){
-		console.log("btnAddRowAbove clicked");
 		var newRow = $("<tr>");
 		var cols = getCleanRow();
 		newRow.append(cols);
 		newRow.insertBefore($(this).parents().closest("tr")); //insert fresh row before current row
 	});
 	$("#proof-area").on("click", "#proof-table .btnAddRowBelow", function(){
-		console.log("btnAddRowBelow clicked");
 		var newRow = $("<tr>");
 		var cols = getCleanRow();
 		newRow.append(cols);
@@ -226,6 +242,46 @@ $(document).ready(function(){
 	////////////////FUNCTIONS//////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 *	A function to clean an array of "" strings. Mainly for dependencies and justifications
+	 *	@param  {Array.String}    arr - array that may contain "" elements
+	 *	@return {Array.String} newArr - array with "" elements removed
+	 */
+	function clearEmptyStringsFromArray(arr){
+		var newArr = [];
+		for(var i=0; i<arr.length; i++)
+			if(arr[i] !== "")
+				newArr.push(arr[i]);
+		return newArr;
+	}
+
+	/**
+	 *	A function to display feedback about the proof for a certain amount of time
+	 *	@param  {String}  feedback - string to display to the user
+	 */
+	function displayFeedback(feedback){
+		$("#feedback-area").show();
+		$("#feedback-area").css("border" , "1px solid red");
+		$("#feedback-area").css("border-radius" , "1rem 1rem 1rem 1rem");	
+		$("#feedback-area").css("overflow" , "hidden");
+		$("#feedback-area").css("margin-left" , "15%");
+		$("#feedback-area").css("margin-right" , "15%");
+		$("#feedback-area").css("margin-top" , "2%");
+
+		$("#feedback-string").text(feedback);
+		$("#feedback-string").css("margin-top", "1%");
+		$("#feedback-string").css("margin-bottom", "1%");
+		$("#feedback-string").css("margin-left", "2%");
+		$("#feedback-string").css("margin-right", "2%");
+		$("#feedback-string").css("font-weight", "bold");
+		$("#feedback-string").css("color", "#bb0000");
+
+		setTimeout(function(){
+			$("#feedback-string").text("");
+			$("#feedback-area").hide();
+		} , 7000);
+	}
 
 	/**
 	 *	A function to change the given formula string to CS103's WFF standards
