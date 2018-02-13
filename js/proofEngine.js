@@ -117,6 +117,15 @@ $(document).ready(function(){
 		$lastFocus = $(this).closest("input");
 		////
 	});
+	$("#proof-area").on("keyup", "input[name='proofLineInput']", function(){
+		$(this).closest("input").val( toUserDisplayString($(this).closest("input").val()) );
+		////
+	});
+
+	$("#formula").keyup(function(){
+		$("#formula").val( toUserDisplayString($("#formula").val()) );
+		////
+	});
 
 	//add, remove, check, clear button event listeners
 	$("body").on("click", "#proof-add", function(){
@@ -384,11 +393,27 @@ $(document).ready(function(){
 	 *	@return {String} newFormula - A tombstone-compatible string
 	 */	
 	function toNatdudString(formula){
-		formula = formula.replace(new RegExp("->", "g"), "→"); //yes
-		formula = formula.replace(new RegExp("&", "g"), "∧"); //
-		formula = formula.replace(new RegExp(/\|\|/, "g"), "∨"); //
-		formula = formula.replace(new RegExp("~", "g"), "¬"); //
-		formula = formula.replace(new RegExp("F", "g"), "⊥"); //
+		formula = formula.replace(new RegExp("->", "g"), "→");
+		formula = formula.replace(new RegExp("&", "g"), "∧");
+		formula = formula.replace(new RegExp(/\|\|/, "g"), "∨");
+		formula = formula.replace(new RegExp("~", "g"), "¬");
+		formula = formula.replace(new RegExp("F", "g"), "⊥");
+		formula = formula.replace(new RegExp("f", "g"), "⊥");
+		return formula;
+	}
+
+	/**
+	 *	A function that changes a formula on the fly for better interactiveness
+	 *	@param {String} formula 	- formula string with > F ~ etc symbols
+	 *	@return {String} newFormula - formula string with logic symbols
+	 */	
+	function toUserDisplayString(formula){
+		formula = formula.replace(new RegExp(">", "g"), "→");
+		formula = formula.replace(new RegExp("&", "g"), "∧");
+		formula = formula.replace(new RegExp(/\|\|/, "g"), "∨");
+		formula = formula.replace(new RegExp("~", "g"), "¬");
+		formula = formula.replace(new RegExp("F", "g"), "⊥");
+		formula = formula.replace(new RegExp("f", "g"), "⊥");
 		return formula;
 	}
 
