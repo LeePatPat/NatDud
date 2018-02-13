@@ -59,12 +59,13 @@ $(document).ready(function(){
 			if(!isProvable( $("#formula").val())){ //if the formula is not a tautology
 				displayErrorMessage(message, 2000);
 			}
-			else if(toNatdudString(to103wff(formulaString)) !== formulaString){ //if the formula is not a CS103 WFF
+			else if(toNatdudString(to103wff(formulaString)) !== toNatdudString(formulaString)){ //if the formula is not a CS103 WFF
 				message = "Your formula is not a WFF. Perhaps you meant: " + toNatdudString(to103wff(formulaString)) + " - remember to ensure parentheses are used correctly.";
 				displayErrorMessage(message, 6000);
 			}
 			else{
 				formulaValid = true;
+				$("#formula").val(toNatdudString($("#formula").val()));
 				formulaString = $("#formula").val();
 				$("#formula").prop("disabled", true); //disabled
 				$("#proof-input-area").show();
@@ -113,6 +114,7 @@ $(document).ready(function(){
 	//on blur event listener. let's user add symbols to proof input box
 	$("#proof-area").on("blur", "input[name='proofLineInput']", function(){
 		$lastFocus = $(this).closest("input");
+		////
 	});
 
 	//add, remove, check, clear button event listeners
@@ -193,29 +195,34 @@ $(document).ready(function(){
 		//loop through each line of the proof table and display feedback
 		var proofData = [], //array of ProofLine objects. Aka the proof.
 			proofValid = true;
-			i = 1;
+			counter = 1;
 		$("#proof-table tr").each(function(i, row){
 			var $row   = $(row),
 				$deps  = $row.find('input[name*="dependencyInput"]').val().replace(/\s/g,''),
 				$line  = $row.find('input[name*="proofLineInput"]').val().toUpperCase().replace(/\s/g,''),
-				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().toUpperCase().replace(/\s/g,''),
+				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().replace(/\s/g,''),
 				$just  = $row.find('input[name*="justificationInput"]').val().toUpperCase().replace(/\s/g,'');
-			var str = $deps + " " + $line + " " + $rule + " " + $just;
 
-			$row.find('input[name*="proofLineInput"]').val( $line );
-			$deps = $deps.split(',');
+			$row.find('input[name*="proofLineInput"]').val( toNatdudString($line) );
+			$row.find('input[name*="dependencyInput"]').val( $deps );
+			$row.find('input[name*="justificationInput"]').val( $just );
+
+			$deps = clearEmptyStringsFromArray($deps.split(','));
 			$line = toTombstoneString($line);
-			$just = $just.split(',');
+			$just = clearEmptyStringsFromArray($just.split(','));
 
-			proofData.push(new ProofLine($deps, i++, $line, $rule, $just));
+			proofData.push(new ProofLine($deps, counter++, toTombstoneString($line), $rule, $just));
 		});
 
 		for(var j=0; j<proofData.length; j++)
 			console.log(proofData[j].getLineAsString());
 
-
 		var proof_validator = new ProofValidator(new tombstone.Statement(toTombstoneString(formulaString)).tree["tree"][0], proofData, true);
-		displayFeedback( proof_validator.getFeedback() );
+
+		if(!proof_validator.isProofValid())
+			displayFeedback( proof_validator.getFeedback() );
+		else
+			displayValidFeedback();
 	});
 
 	//row button actions (delete row, add above, add below)
@@ -280,7 +287,29 @@ $(document).ready(function(){
 		setTimeout(function(){
 			$("#feedback-string").text("");
 			$("#feedback-area").hide();
-		} , 7000);
+		} , 12000);
+	}
+
+	/**
+	 *	A function to display that the proof is valid
+	 *	@param  {String}  feedback - string to display to the user
+	 */
+	function displayValidFeedback(){
+		$("#feedback-area").show();
+		$("#feedback-area").css("border" , "1px solid green");
+		$("#feedback-area").css("border-radius" , "1rem 1rem 1rem 1rem");	
+		$("#feedback-area").css("overflow" , "hidden");
+		$("#feedback-area").css("margin-left" , "15%");
+		$("#feedback-area").css("margin-right" , "15%");
+		$("#feedback-area").css("margin-top" , "2%");
+
+		$("#feedback-string").text("Proof is valid! Rule usage is valid, line dependencies are correct and all assumptions are discharged.");
+		$("#feedback-string").css("margin-top", "1%");
+		$("#feedback-string").css("margin-bottom", "1%");
+		$("#feedback-string").css("margin-left", "2%");
+		$("#feedback-string").css("margin-right", "2%");
+		$("#feedback-string").css("font-weight", "bold");
+		$("#feedback-string").css("color", "#009933");
 	}
 
 	/**

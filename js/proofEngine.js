@@ -60,12 +60,13 @@ $(document).ready(function(){
 			if(!isProvable( $("#formula").val())){ //if the formula is not a tautology
 				displayErrorMessage(message, 2000);
 			}
-			else if(toNatdudString(to103wff(formulaString)) !== formulaString){ //if the formula is not a CS103 WFF
+			else if(toNatdudString(to103wff(formulaString)) !== toNatdudString(formulaString)){ //if the formula is not a CS103 WFF
 				message = "Your formula is not a WFF. Perhaps you meant: " + toNatdudString(to103wff(formulaString)) + " - remember to ensure parentheses are used correctly.";
 				displayErrorMessage(message, 6000);
 			}
 			else{
 				formulaValid = true;
+				$("#formula").val(toNatdudString($("#formula").val()));
 				formulaString = $("#formula").val();
 				$("#formula").prop("disabled", true); //disabled
 				$("#proof-input-area").show();
@@ -114,6 +115,7 @@ $(document).ready(function(){
 	//on blur event listener. let's user add symbols to proof input box
 	$("#proof-area").on("blur", "input[name='proofLineInput']", function(){
 		$lastFocus = $(this).closest("input");
+		////
 	});
 
 	//add, remove, check, clear button event listeners
@@ -194,29 +196,34 @@ $(document).ready(function(){
 		//loop through each line of the proof table and display feedback
 		var proofData = [], //array of ProofLine objects. Aka the proof.
 			proofValid = true;
-			i = 1;
+			counter = 1;
 		$("#proof-table tr").each(function(i, row){
 			var $row   = $(row),
 				$deps  = $row.find('input[name*="dependencyInput"]').val().replace(/\s/g,''),
 				$line  = $row.find('input[name*="proofLineInput"]').val().toUpperCase().replace(/\s/g,''),
-				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().toUpperCase().replace(/\s/g,''),
+				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().replace(/\s/g,''),
 				$just  = $row.find('input[name*="justificationInput"]').val().toUpperCase().replace(/\s/g,'');
-			var str = $deps + " " + $line + " " + $rule + " " + $just;
 
-			$row.find('input[name*="proofLineInput"]').val( $line );
-			$deps = $deps.split(',');
+			$row.find('input[name*="proofLineInput"]').val( toNatdudString($line) );
+			$row.find('input[name*="dependencyInput"]').val( $deps );
+			$row.find('input[name*="justificationInput"]').val( $just );
+
+			$deps = clearEmptyStringsFromArray($deps.split(','));
 			$line = toTombstoneString($line);
-			$just = $just.split(',');
+			$just = clearEmptyStringsFromArray($just.split(','));
 
-			proofData.push(new ProofLine($deps, i++, $line, $rule, $just));
+			proofData.push(new ProofLine($deps, counter++, toTombstoneString($line), $rule, $just));
 		});
 
 		for(var j=0; j<proofData.length; j++)
 			console.log(proofData[j].getLineAsString());
 
-
 		var proof_validator = new ProofValidator(new tombstone.Statement(toTombstoneString(formulaString)).tree["tree"][0], proofData, true);
-		displayFeedback( proof_validator.getFeedback() );
+
+		if(!proof_validator.isProofValid())
+			displayFeedback( proof_validator.getFeedback() );
+		else
+			displayValidFeedback();
 	});
 
 	//row button actions (delete row, add above, add below)
@@ -281,7 +288,29 @@ $(document).ready(function(){
 		setTimeout(function(){
 			$("#feedback-string").text("");
 			$("#feedback-area").hide();
-		} , 7000);
+		} , 12000);
+	}
+
+	/**
+	 *	A function to display that the proof is valid
+	 *	@param  {String}  feedback - string to display to the user
+	 */
+	function displayValidFeedback(){
+		$("#feedback-area").show();
+		$("#feedback-area").css("border" , "1px solid green");
+		$("#feedback-area").css("border-radius" , "1rem 1rem 1rem 1rem");	
+		$("#feedback-area").css("overflow" , "hidden");
+		$("#feedback-area").css("margin-left" , "15%");
+		$("#feedback-area").css("margin-right" , "15%");
+		$("#feedback-area").css("margin-top" , "2%");
+
+		$("#feedback-string").text("Proof is valid! Rule usage is valid, line dependencies are correct and all assumptions are discharged.");
+		$("#feedback-string").css("margin-top", "1%");
+		$("#feedback-string").css("margin-bottom", "1%");
+		$("#feedback-string").css("margin-left", "2%");
+		$("#feedback-string").css("margin-right", "2%");
+		$("#feedback-string").css("font-weight", "bold");
+		$("#feedback-string").css("color", "#009933");
 	}
 
 	/**
@@ -636,6 +665,9 @@ class ProofValidator {
             if(i+1 === this.proof.length && currentLineDeps > 0){ //last line AND there are still line dependencies
                 this._addProblemToProblemList(i, "the last line in the proof should not have dependencies. All assumptions should be discharged using inference rules by the final line of the proof.");
                 return false;
+            }else if(currentLineProposition.replace(/ /g,'') === ""){
+                this._addProblemToProblemList(i, "proof lines cannot be empty.");
+                return false;
             }
 
             switch(currentRule){
@@ -733,7 +765,7 @@ class ProofValidator {
         if(deps.length > 5 || deps.length < 5){ //does not have 5 justifications
             this._addProblemToProblemList(currentLineNumber, "orElim must have exactly 5 rule justifications.");
             return false;
-        }else if(deps[0] >= deps[1] || deps[1] >= deps[2] || deps[2] >= deps[3] || deps[3] >= deps[4]){ //justifications not in correct order
+        }else if(deps[0] > deps[1] || deps[1] > deps[2] || deps[2] > deps[3] || deps[3] > deps[4]){ //justifications not in correct order
             this._addProblemToProblemList(currentLineNumber, "the rule justifications are not in order; they must be in ascending order. E.g. 1,2,3,4,5");
             return false;
         }else if(deps[4] >= currentLineNumber+1){ //any of the justifications are greater than the current line number
@@ -772,10 +804,11 @@ class ProofValidator {
         if(dep3prop !== prop){ //this justification does not match the current line's proposition
             this._addProblemToProblemList(currentLineNumber, "the third justification proposition must match the current line's proposition. This is so the assumption from the 2nd justiciation can be discharged.");
             return false;
-        }else if(dep3rule === "assume"){ //the rule for the 3rd justification is an assumption
-            this._addProblemToProblemList(currentLineNumber, "the third justification cannot be an assumption. This is not a legitimate way of discharging the 2nd justification assumption, and therefore must be the product of inference rule usage.");
-            return false;
         }
+        // else if(dep3rule === "assume"){ //the rule for the 3rd justification is an assumption
+        //     this._addProblemToProblemList(currentLineNumber, "the third justification cannot be an assumption. This is not a legitimate way of discharging the 2nd justification assumption, and therefore must be the product of inference rule usage.");
+        //     return false;
+        // }
 
         //fourth justification check
         let dep1rightDisj = treeToFormula(dep1tree["children"][0] , 0); //AvB is now B
@@ -798,10 +831,11 @@ class ProofValidator {
         if(dep5prop !== prop){ //this justification does not match the current line's proposition
             this._addProblemToProblemList(currentLineNumber, "the fifth justification proposition must match the current line's proposition. This is so the assumption from the 4th justiciation can be discharged.");
             return false;
-        }else if(dep5rule === "assume"){ //rule for 5th justification is an assumption 
-            this._addProblemToProblemList(currentLineNumber, "the fifth justification cannot be an assumption. This is not a legitimate way of discharging the 4th justification assumption, and therefore must be the product of inference rule usage.");
-            return false;
         }
+        // else if(dep5rule === "assume"){ //rule for 5th justification is an assumption 
+        //     this._addProblemToProblemList(currentLineNumber, "the fifth justification cannot be an assumption. This is not a legitimate way of discharging the 4th justification assumption, and therefore must be the product of inference rule usage.");
+        //     return false;
+        // }
 
         //---------------------LINE DEP CHECKS-----------------------------//
         let gammaDeps = dep1line.getDependencies().sort();    //Gamma
@@ -992,28 +1026,41 @@ class ProofValidator {
         let dep2prop = dep2line.getProposition();
         let dep2rule = dep2line.getRule();
 
+        console.log("antecedent: " + antecedent);
+        console.log("dep1prop: " + dep1prop);
+        console.log("consequent: " + consequent);
+        console.log("dep2prop: " + dep2prop);
+        console.log("dep1rule: " + dep1rule);
+        console.log("dep2rule: " + dep2rule);
+
+
         if(antecedent !== dep1prop){ //(A)->B  !== A
+            console.log("here1");
             this._addProblemToProblemList(currentLineNumber, "justification values are not correct. The antecedent (left-side) of your implication does not correspond to the 1st justification line number you have given. E.g. '3,2' where 3 is the line number for the antecedent.");
             return false;
         }else if(consequent !== dep2prop){ //A->(B) !== B
+            console.log("here2");
             this._addProblemToProblemList(currentLineNumber, "justification values are not correct. The consequent (right-side) of your implication does not correspond to the 2nd justification line number you have given. E.g. '3,2' where 2 is the line number for the consequent.");
             return false;
         }else if(dep1rule !== "assume"){ //antecedent is not an assumption
+            console.log("here3");
             this._addProblemToProblemList(currentLineNumber, "the antecedent (left-side) of the implication you are trying to introduce must be an assumption. Ensure that you only use impIntro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
             return false;
         }else if(dep2rule === "assume"){ //consequent is not an inference rule
+            console.log("here4");
             this._addProblemToProblemList(currentLineNumber, "the consequent (right-side) of the implication you are trying to introduce must be a product of an inference rule. Ensure that you only use impIntro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
             return false;
         }
 
 
         //check line dependencies
-        if(currentLineNumber !== this.proof.length){ //last line does not need to be checked
-            console.log("checking last line's line dependencies");
-            if(currentLine.getDependencies().length > 0){
-                this._addProblemToProblemList(currentLineNumber, "");
-                return false;   
-            }
+        console.log(JSON.stringify(currentLine));
+
+        if(currentLineNumber+1 !== this.proof.length){ //last line does not need to be checked
+            // if(currentLine.getDependencies().length <= 0){
+            //     this._addProblemToProblemList(currentLineNumber, "this line requires line dependencies as it relies on previous assumptions");
+            //     return false; 
+            // }
 
             let dep1deps        = dep1line.getDependencies().sort();    //1,2
             let dep2deps        = dep2line.getDependencies().sort();    //1,2,5,6
