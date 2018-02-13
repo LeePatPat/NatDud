@@ -62,6 +62,10 @@ $(document).ready(function(){
 
 			ruleDepsArray = currentRuleDeps.replace('/\s/g', '').split(',').map(Number); //"1,2,3" = [1,2,3]
 			lineDepsArray = currentLineDeps.replace('/\s/g', '').split(',').map(Number); //"1,2,3" = [1,2,3]
+			if(ruleDepsArray[0] === 0)
+				ruleDepsArray = [];
+			if(lineDepsArray[0] === 0)
+				lineDepsArray = [];
 
 			if(i+1 === proofProps.length)
 				proof.push(new ProofLine([], i+1, proofProps[i], proofRules[i], ruleDepsArray));
