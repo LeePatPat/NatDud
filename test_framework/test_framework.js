@@ -67,10 +67,7 @@ $(document).ready(function(){
 			if(lineDepsArray[0] === 0)
 				lineDepsArray = [];
 
-			if(i+1 === proofProps.length)
-				proof.push(new ProofLine([], i+1, proofProps[i], proofRules[i], ruleDepsArray));
-			else
-				proof.push(new ProofLine(lineDepsArray, i+1, proofProps[i], proofRules[i], ruleDepsArray));
+			proof.push(new ProofLine(lineDepsArray, i+1, proofProps[i], proofRules[i], ruleDepsArray));
 
 			$("#proofString").text($("#proofString").text() + proof[i].getLineAsString() + "\n");
 		}
