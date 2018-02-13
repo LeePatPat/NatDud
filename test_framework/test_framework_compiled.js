@@ -111,6 +111,9 @@ class ProofValidator {
             if(i+1 === this.proof.length && currentLineDeps > 0){ //last line AND there are still line dependencies
                 this._addProblemToProblemList(i, "the last line in the proof should not have dependencies. All assumptions should be discharged using inference rules by the final line of the proof.");
                 return false;
+            }else if(currentLineProposition.replace(/ /g,'') === ""){
+                this._addProblemToProblemList(i, "proof lines cannot be empty.");
+                return false;
             }
 
             switch(currentRule){
@@ -172,7 +175,7 @@ class ProofValidator {
                         return false;
                     break;
                 default:
-                    console.error("Error in ProofValidator: undetermined case executed.");
+                    this._addProblemToProblemList(i, "You must select a rule from the options given.");
                     return false;
             }
         }
@@ -189,6 +192,7 @@ class ProofValidator {
             return false;
         }
 
+        this.problemList.push("Proof is valid! Rule usage is valid, line dependencies are correct and all assumptions are discharged.");
         return true; //all assumptions discharged, line dependencies are correct and use of rules are valid; proof is valid
     }
 
@@ -207,7 +211,7 @@ class ProofValidator {
         if(deps.length > 5 || deps.length < 5){ //does not have 5 justifications
             this._addProblemToProblemList(currentLineNumber, "orElim must have exactly 5 rule justifications.");
             return false;
-        }else if(deps[0] >= deps[1] || deps[1] >= deps[2] || deps[2] >= deps[3] || deps[3] >= deps[4]){ //justifications not in correct order
+        }else if(deps[0] > deps[1] || deps[1] > deps[2] || deps[2] > deps[3] || deps[3] > deps[4]){ //justifications not in correct order
             this._addProblemToProblemList(currentLineNumber, "the rule justifications are not in order; they must be in ascending order. E.g. 1,2,3,4,5");
             return false;
         }else if(deps[4] >= currentLineNumber+1){ //any of the justifications are greater than the current line number
@@ -246,10 +250,11 @@ class ProofValidator {
         if(dep3prop !== prop){ //this justification does not match the current line's proposition
             this._addProblemToProblemList(currentLineNumber, "the third justification proposition must match the current line's proposition. This is so the assumption from the 2nd justiciation can be discharged.");
             return false;
-        }else if(dep3rule === "assume"){ //the rule for the 3rd justification is an assumption
-            this._addProblemToProblemList(currentLineNumber, "the third justification cannot be an assumption. This is not a legitimate way of discharging the 2nd justification assumption, and therefore must be the product of inference rule usage.");
-            return false;
         }
+        // else if(dep3rule === "assume"){ //the rule for the 3rd justification is an assumption
+        //     this._addProblemToProblemList(currentLineNumber, "the third justification cannot be an assumption. This is not a legitimate way of discharging the 2nd justification assumption, and therefore must be the product of inference rule usage.");
+        //     return false;
+        // }
 
         //fourth justification check
         let dep1rightDisj = treeToFormula(dep1tree["children"][0] , 0); //AvB is now B
@@ -272,10 +277,11 @@ class ProofValidator {
         if(dep5prop !== prop){ //this justification does not match the current line's proposition
             this._addProblemToProblemList(currentLineNumber, "the fifth justification proposition must match the current line's proposition. This is so the assumption from the 4th justiciation can be discharged.");
             return false;
-        }else if(dep5rule === "assume"){ //rule for 5th justification is an assumption 
-            this._addProblemToProblemList(currentLineNumber, "the fifth justification cannot be an assumption. This is not a legitimate way of discharging the 4th justification assumption, and therefore must be the product of inference rule usage.");
-            return false;
         }
+        // else if(dep5rule === "assume"){ //rule for 5th justification is an assumption 
+        //     this._addProblemToProblemList(currentLineNumber, "the fifth justification cannot be an assumption. This is not a legitimate way of discharging the 4th justification assumption, and therefore must be the product of inference rule usage.");
+        //     return false;
+        // }
 
         //---------------------LINE DEP CHECKS-----------------------------//
         let gammaDeps = dep1line.getDependencies().sort();    //Gamma
@@ -466,28 +472,41 @@ class ProofValidator {
         let dep2prop = dep2line.getProposition();
         let dep2rule = dep2line.getRule();
 
+        console.log("antecedent: " + antecedent);
+        console.log("dep1prop: " + dep1prop);
+        console.log("consequent: " + consequent);
+        console.log("dep2prop: " + dep2prop);
+        console.log("dep1rule: " + dep1rule);
+        console.log("dep2rule: " + dep2rule);
+
+
         if(antecedent !== dep1prop){ //(A)->B  !== A
+            console.log("here1");
             this._addProblemToProblemList(currentLineNumber, "justification values are not correct. The antecedent (left-side) of your implication does not correspond to the 1st justification line number you have given. E.g. '3,2' where 3 is the line number for the antecedent.");
             return false;
         }else if(consequent !== dep2prop){ //A->(B) !== B
+            console.log("here2");
             this._addProblemToProblemList(currentLineNumber, "justification values are not correct. The consequent (right-side) of your implication does not correspond to the 2nd justification line number you have given. E.g. '3,2' where 2 is the line number for the consequent.");
             return false;
         }else if(dep1rule !== "assume"){ //antecedent is not an assumption
+            console.log("here3");
             this._addProblemToProblemList(currentLineNumber, "the antecedent (left-side) of the implication you are trying to introduce must be an assumption. Ensure that you only use impIntro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
             return false;
         }else if(dep2rule === "assume"){ //consequent is not an inference rule
+            console.log("here4");
             this._addProblemToProblemList(currentLineNumber, "the consequent (right-side) of the implication you are trying to introduce must be a product of an inference rule. Ensure that you only use impIntro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
             return false;
         }
 
 
         //check line dependencies
-        if(currentLineNumber !== this.proof.length){ //last line does not need to be checked
-            console.log("checking last line's line dependencies");
-            if(currentLine.getDependencies().length > 0){
-                this._addProblemToProblemList(currentLineNumber, "");
-                return false;   
-            }
+        console.log(JSON.stringify(currentLine));
+
+        if(currentLineNumber+1 !== this.proof.length){ //last line does not need to be checked
+            // if(currentLine.getDependencies().length <= 0){
+            //     this._addProblemToProblemList(currentLineNumber, "this line requires line dependencies as it relies on previous assumptions");
+            //     return false; 
+            // }
 
             let dep1deps        = dep1line.getDependencies().sort();    //1,2
             let dep2deps        = dep2line.getDependencies().sort();    //1,2,5,6
@@ -11353,6 +11372,10 @@ $(document).ready(function(){
 
 			ruleDepsArray = currentRuleDeps.replace('/\s/g', '').split(',').map(Number); //"1,2,3" = [1,2,3]
 			lineDepsArray = currentLineDeps.replace('/\s/g', '').split(',').map(Number); //"1,2,3" = [1,2,3]
+			if(ruleDepsArray[0] === 0)
+				ruleDepsArray = [];
+			if(lineDepsArray[0] === 0)
+				lineDepsArray = [];
 
 			if(i+1 === proofProps.length)
 				proof.push(new ProofLine([], i+1, proofProps[i], proofRules[i], ruleDepsArray));
