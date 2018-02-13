@@ -20,8 +20,10 @@ $(document).ready(function(){
 			$("#formula").val($("#formula").val() + "→");
 			$("#formula").focus();
 		}else{
-			$lastFocus.val( $lastFocus.val() + "→" );
-			$lastFocus.focus();
+			if($lastFocus != null){
+				$lastFocus.val( $lastFocus.val() + "→" );
+				$lastFocus.focus();
+			}
 		}
 	});
 	$("#logic-and").click(function(){
@@ -29,8 +31,10 @@ $(document).ready(function(){
 			$("#formula").val($("#formula").val() + "∧");
 			$("#formula").focus();
 		}else{
-			$lastFocus.val( $lastFocus.val() + "∧" );
-			$lastFocus.focus();
+			if($lastFocus != null){
+				$lastFocus.val( $lastFocus.val() + "∧" );
+				$lastFocus.focus();
+			}
 		}
 	});
 	$("#logic-or").click(function(){
@@ -38,8 +42,10 @@ $(document).ready(function(){
 			$("#formula").val($("#formula").val() + "∨");
 			$("#formula").focus();
 		}else{
-			$lastFocus.val( $lastFocus.val() + "∨" );
-			$lastFocus.focus();
+			if($lastFocus != null){
+				$lastFocus.val( $lastFocus.val() + "∨" );
+				$lastFocus.focus();
+			}
 		}
 	});
 	$("#logic-not").click(function(){
@@ -47,8 +53,10 @@ $(document).ready(function(){
 			$("#formula").val($("#formula").val() + "¬");
 			$("#formula").focus();
 		}else{
-			$lastFocus.val( $lastFocus.val() + "¬" );
-			$lastFocus.focus();
+			if($lastFocus != null){
+				$lastFocus.val( $lastFocus.val() + "¬" );
+				$lastFocus.focus();
+			}
 		}
 	});
 	$("#logic-submit").click(function(){
@@ -89,8 +97,9 @@ $(document).ready(function(){
 				var cols = "";
 				cols += '<td style="width: 10%">		 <input name="dependencyInput" class="form-control input-sm" placeholder="Deps." title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
 				cols += '<td style="width: 40%">		 <input name="proofLineInput" class="form-control input-sm" placeholder="Proof Line (use symbols & F for ⊥)" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
-				cols += '<td>							 <select name="ruleInput" class="selectpicker form-control input-sm"><option disabled selected value="null">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
+				cols += '<td>							 <select name="ruleInput" class="selectpicker form-control input-sm"><option disabled selected value="null">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim">∧-elim</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro">∨-intro</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
 				cols += '<td style="width: 10%">		 <input name="justificationInput" class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
+				cols += '<td style="visibility: hidden"> <button class="btn-danger btn-sm btnDelRow">?</button> </td>';
 				cols += '<td style="visibility: hidden"> <button class="btn-danger btn-sm btnDelRow">x</button> </td>';
 				cols += '<td> 							 <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
 				cols += '<td style="visibility: hidden"> <button class="btn-info btn-sm btnAddRowBelow">↓</button> </td>';
@@ -116,13 +125,14 @@ $(document).ready(function(){
 		$lastFocus = $(this).closest("input");
 		////
 	});
-	$("#proof-area").on("keyup", "input[name='proofLineInput']", function(){
-		$(this).closest("input").val( toUserDisplayString($(this).closest("input").val()) );
-		////
-	});
 
+	//when user enters a key, it is checked for any chracters to change
 	$("#formula").keyup(function(){
 		$("#formula").val( toUserDisplayString($("#formula").val()) );
+		////
+	});
+	$("#proof-area").on("keyup", "input[name='proofLineInput']", function(){
+		$(this).closest("input").val( toUserDisplayString($(this).closest("input").val()) );
 		////
 	});
 
@@ -252,6 +262,10 @@ $(document).ready(function(){
 		newRow.append(cols);
 		newRow.insertAfter($(this).parents().closest("tr")); //insert fresh row after current row
 	});
+	$("#proof-area").on("click", "#proof-table .btnCheckRow", function(){
+		//check if current line is valid
+		////
+	});
 
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -292,11 +306,6 @@ $(document).ready(function(){
 		$("#feedback-string").css("margin-right", "2%");
 		$("#feedback-string").css("font-weight", "bold");
 		$("#feedback-string").css("color", "#bb0000");
-
-		setTimeout(function(){
-			$("#feedback-string").text("");
-			$("#feedback-area").hide();
-		} , 12000);
 	}
 
 	/**
@@ -363,8 +372,9 @@ $(document).ready(function(){
 		var cols = "";
 			cols += '<td style="width: 10%">	<input name="dependencyInput" class="form-control input-sm" placeholder="Deps." title="Dependencies: e.g. 1,2"></td>';
 			cols += '<td style="width: 40%">	<input name="proofLineInput" class="form-control input-sm" placeholder="Proof Line (use symbols or F for ⊥)" title="Proposition: use symbols above or F for falsum"></td>';
-			cols += '<td>						<select name="ruleInput" class="selectpicker form-control input-sm"><option value="null" style="display: none">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim1">∧-elim1</option><option value="andElim2">∧-elim2</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro1">∨-intro1</option><option value="orIntro2">∨-intro2</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
+			cols += '<td>						<select name="ruleInput" class="selectpicker form-control input-sm"><option value="null" style="display: none">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim">∧-elim</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro">∨-intro</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
 			cols += '<td style="width: 10%">	<input name="justificationInput" class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
+			cols += '<td> <button class="btn-success btn-sm btnCheckRow">?</button> </td>';
 			cols += '<td> <button class="btn-danger btn-sm btnDelRow">x</button> </td>';
 			cols += '<td> <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
 			cols += '<td> <button class="btn-info btn-sm btnAddRowBelow">↓</button> </td>';
@@ -407,9 +417,12 @@ $(document).ready(function(){
 	 *	@return {String} newFormula - formula string with logic symbols
 	 */	
 	function toUserDisplayString(formula){
+		formula = formula.replace(new RegExp("->", "g"), "→");
 		formula = formula.replace(new RegExp(">", "g"), "→");
+		formula = formula.replace(new RegExp("&&", "g"), "∧");
 		formula = formula.replace(new RegExp("&", "g"), "∧");
 		formula = formula.replace(new RegExp(/\|\|/, "g"), "∨");
+		formula = formula.replace(new RegExp(/\|/, "g"), "∨");
 		formula = formula.replace(new RegExp("~", "g"), "¬");
 		formula = formula.replace(new RegExp("F", "g"), "⊥");
 		formula = formula.replace(new RegExp("f", "g"), "⊥");
