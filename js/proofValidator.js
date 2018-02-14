@@ -396,9 +396,13 @@ class ProofValidator {
 
         let dep2line = this.proof[ this._getProofLineIndex(deps[1]) ];
         let dep2prop = dep2line.getProposition();
+        let dep2rule = dep2line.getRule();
 
         if(dep2prop !== "F"){
             this._addProblemToProblemList(currentLineNumber, "your second justification must be falsum (F). Rule usage:  ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            return false;
+        }else if(dep2rule === "assume"){
+            this._addProblemToProblemList(currentLineNumber, "your second justification cannot be an assumption. You must derive falsum from the use of inference rules from the assumption. Rule usage:  ¬A ⊢ F | A   'F deduced from ¬A produces A'");
             return false;
         }
 
