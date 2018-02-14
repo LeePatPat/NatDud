@@ -99,7 +99,7 @@ $(document).ready(function(){
 				cols += '<td style="width: 40%">		 <input name="proofLineInput" class="form-control input-sm" placeholder="Proof Line (use symbols & F for ⊥)" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
 				cols += '<td>							 <select name="ruleInput" class="selectpicker form-control input-sm"><option disabled selected value="null">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim">∧-elim</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro">∨-intro</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
 				cols += '<td style="width: 10%">		 <input name="justificationInput" class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
-				cols += '<td style="visibility: hidden"> <button class="btn-danger btn-sm btnDelRow">?</button> </td>';
+				cols += '<td style="visibility: hidden"> <button class="btn-danger btn-sm btnCheckRow">?</button> </td>';
 				cols += '<td style="visibility: hidden"> <button class="btn-danger btn-sm btnDelRow">x</button> </td>';
 				cols += '<td> 							 <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
 				cols += '<td style="visibility: hidden"> <button class="btn-info btn-sm btnAddRowBelow">↓</button> </td>';
@@ -233,15 +233,13 @@ $(document).ready(function(){
 			proofData.push(new ProofLine($deps, counter++, toTombstoneString($line), $rule, $just));
 		});
 
-		for(var j=0; j<proofData.length; j++)
-			console.log(proofData[j].getLineAsString());
 
 		var proof_validator = new ProofValidator(new tombstone.Statement(toTombstoneString(formulaString)).tree["tree"][0], proofData, true);
 
 		if(!proof_validator.isProofValid())
 			displayFeedback( proof_validator.getFeedback() );
 		else
-			displayValidFeedback();
+			displayValidFeedback( proof_validator.getFeedback() );
 	});
 
 	//row button actions (delete row, add above, add below)
@@ -260,11 +258,83 @@ $(document).ready(function(){
 		var newRow = $("<tr>");
 		var cols = getCleanRow();
 		newRow.append(cols);
-		newRow.insertAfter($(this).parents().closest("tr")); //insert fresh row after current row
+		newRow.insertAfter($(this).parent().closest("tr")); //insert fresh row after current row
 	});
 	$("#proof-area").on("click", "#proof-table .btnCheckRow", function(){
-		//check if current line is valid
-		////
+		let formulaTombstoneObject = null;
+		let formulaTree = null;
+		let partialProofData = []; //array of ProofLine objects
+		try{
+			formulaTombstoneObject = new tombstone.Statement( toTombstoneString(formulaString) );
+			formulaTree = formulaTombstoneObject.tree["tree"][0];
+		}catch(e){
+			displayFeedback("The line you have attempted to check is not a WFF.");
+			return false;
+		}
+
+		var $row     	= $(this).parent().parent();
+		var currLineNum = $row.index()+1;
+		var currDeps    = $row.find("input[name='dependencyInput']").val().replace(/\s/g,'').split(',');
+		var currLine 	= $row.find("input[name='proofLineInput']").val().replace(/\s/g,'').toUpperCase();
+		var currRule 	= $row.find("select[name='ruleInput']").find(":selected").val().toLowerCase();
+		var currJust 	= $row.find("input[name='justificationInput']").val().replace(/\s/g,'').split(',');
+			currDeps 	= clearEmptyStringsFromArray(currDeps);
+			currJust 	= clearEmptyStringsFromArray(currJust);
+
+		//blank line and justification checking
+		if(currLine === ""){ //line is blank
+			displayFeedback("[Line " + currLineNum + "]: You cannot validate a blank line.");
+			return false;
+		}else if(currRule === "assume" && currJust.length !== 0){ //if rule is assume AND the number of justifications is not 0
+			displayFeedback("[Line " + currLineNum + "]: Assume does not require any rule justifications.");
+			return false;
+		}else if(isOneJustificationRule(currRule) && currJust.length !== 1){ //if this is a one justification rule AND rule is not using exactly 1 justification
+			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY one rule justification.");
+			return false;
+		}else if(isTwoJustificationRule(currRule) && currJust.length !== 2){ //if this is a two justificationrule  AND rule is not using exactly 2 justifications
+			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY two rule justifications.");
+			return false;
+		}else if(currRule.toLowerCase() === "orelim" && currJust.length !== 5){ //if current rule is orelim AND rule does not use 5 justifications
+			displayFeedback("[Line " + currLineNum + "]: Or-Elimination requires EXACTLY five rule justifications.");
+			return false;
+		}else if(currJust.length === 3 || currJust.length === 4 || currJust.length > 5){ //if three or four or more than five justifications are used
+			displayFeedback("[Line " + currLineNum + "]: The number of rule justifications is incorrect.");
+			return false;
+		}
+
+
+		//loop through all table rows up until the row that wants to be checked
+		$("#proof-table tr").each(function(i, row){
+			if(i+1 === currLineNum) return false; //we've reached the current line, break
+			if( $.inArray( (i+1).toString(), currJust ) === -1 ) return true; //skip to next line if this line is not in the justifications
+
+			let $row   = $(row),
+				$deps  = $row.find('input[name*="dependencyInput"]').val().replace(/\s/g,''),
+				$line  = $row.find('input[name*="proofLineInput"]').val().toUpperCase().replace(/\s/g,''),
+				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().replace(/\s/g,''),
+				$just  = $row.find('input[name*="justificationInput"]').val().toUpperCase().replace(/\s/g,'');
+
+			$row.find('input[name*="proofLineInput"]').val( toNatdudString($line) );
+			$row.find('input[name*="dependencyInput"]').val( $deps );
+			$row.find('input[name*="justificationInput"]').val( $just );
+
+			$deps = clearEmptyStringsFromArray($deps.split(','));
+			$line = toTombstoneString($line);
+			$just = clearEmptyStringsFromArray($just.split(','));
+
+			partialProofData.push(new ProofLine($deps, (i+1).toString(), toTombstoneString($line), $rule, $just));
+		});
+		partialProofData.push(new ProofLine(currDeps, currLineNum.toString(), toTombstoneString(currLine), currRule, currJust)); //final line
+	
+		for(var j=0; j<partialProofData.length; j++) //print debug code
+			console.log(partialProofData[j].getLineAsString());
+
+		let proof_line_validator = new ProofValidator(formulaTree, partialProofData, false); //partial validation only
+		if(proof_line_validator.isProofValid()){
+			displayValidFeedback("This line is currently valid. Rule usage is valid and line dependencies are correct.");
+		}else{
+			displayFeedback(proof_line_validator.getFeedback());
+		}
 	});
 
 
@@ -272,6 +342,30 @@ $(document).ready(function(){
 	////////////////FUNCTIONS//////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 *	A function to check if the given rule string is a rule that requires exactly one justification
+	 *	@param  {String}  rule - rule in the form of a string
+	 *	@return {Boolean} newArr - true if rule uses exactly one justification
+	 */
+	function isOneJustificationRule(rule){
+		rule = rule.toLowerCase();
+		if(rule!=="andelim" || rule!=="orintro" || rule!=="notintro" || rule!=="notelim" || rule!=="efq")
+			return false;
+		return true;
+	}
+
+	/**
+	 *	A function to check if the given rule string is a rule that requires exactly two justifications
+	 *	@param  {String}  rule - rule in the form of a string
+	 *	@return {Boolean} newArr - true if rule uses exactly two justifications
+	 */
+	function isTwoJustificationRule(rule){
+		rule = rule.toLowerCase();
+		if(rule!=="andintro" || rule!=="impintro" || rule!=="impelim" || rule!=="raa")
+			return false;
+		return true;
+	}
 
 	/**
 	 *	A function to clean an array of "" strings. Mainly for dependencies and justifications
@@ -312,7 +406,7 @@ $(document).ready(function(){
 	 *	A function to display that the proof is valid
 	 *	@param  {String}  feedback - string to display to the user
 	 */
-	function displayValidFeedback(){
+	function displayValidFeedback(feedback){
 		$("#feedback-area").show();
 		$("#feedback-area").css("border" , "1px solid green");
 		$("#feedback-area").css("border-radius" , "1rem 1rem 1rem 1rem");	
@@ -321,7 +415,7 @@ $(document).ready(function(){
 		$("#feedback-area").css("margin-right" , "15%");
 		$("#feedback-area").css("margin-top" , "2%");
 
-		$("#feedback-string").text("Proof is valid! Rule usage is valid, line dependencies are correct and all assumptions are discharged.");
+		$("#feedback-string").text(feedback);
 		$("#feedback-string").css("margin-top", "1%");
 		$("#feedback-string").css("margin-bottom", "1%");
 		$("#feedback-string").css("margin-left", "2%");
