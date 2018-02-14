@@ -332,7 +332,7 @@ $(document).ready(function(){
 
 		let proof_line_validator = new ProofValidator(formulaTree, partialProofData, false); //partial validation only
 		if(proof_line_validator.isProofValid()){
-			displayValidFeedback("This line is currently valid. Rule usage is valid and line dependencies are correct.");
+			displayValidFeedback("[Line " +currLineNum+"]: This line is currently valid. Rule usage is valid and line dependencies are correct.");
 		}else{
 			displayFeedback(proof_line_validator.getFeedback());
 		}
