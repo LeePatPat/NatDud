@@ -282,6 +282,7 @@ $(document).ready(function(){
 			currDeps 	= clearEmptyStringsFromArray(currDeps);
 			currJust 	= clearEmptyStringsFromArray(currJust);
 
+
 		//blank line and justification checking
 		if(currLine === ""){ //line is blank
 			displayFeedback("[Line " + currLineNum + "]: You cannot validate a blank line.");
@@ -327,14 +328,25 @@ $(document).ready(function(){
 		});
 		partialProofData.push(new ProofLine(currDeps, currLineNum.toString(), toTombstoneString(currLine), currRule, currJust)); //final line
 	
-		for(var j=0; j<partialProofData.length; j++) //print debug code
+		for(var j=0; j<partialProofData.length; j++)		 //print debug code
 			console.log(partialProofData[j].getLineAsString());
 
-		let proof_line_validator = new ProofValidator(formulaTree, partialProofData, false); //partial validation only
-		if(proof_line_validator.isProofValid()){
+		let proof_line_validator = null;
+		try{
+			proof_line_validator = new ProofValidator(formulaTree, partialProofData, false); //partial validation only
+		}catch(e){
+			displayFeedback("[Line " +currLineNum+"]: This line is not valid. Perhaps check the line numbers used for justifying the rule usage.");
+		}
+
+
+		if(proof_line_validator!=null && proof_line_validator.isProofValid()){ //proof is valid
 			displayValidFeedback("[Line " +currLineNum+"]: This line is currently valid. Rule usage is valid and line dependencies are correct.");
-		}else{
+
+		}else if(proof_line_validator!=null && !proof_line_validator.isProofValid()){ //proof is not valid
 			displayFeedback(proof_line_validator.getFeedback());
+
+		}else{
+			console.log("proof_line_validator is somehow null.");
 		}
 	});
 
@@ -351,9 +363,10 @@ $(document).ready(function(){
 	 */
 	function isOneJustificationRule(rule){
 		rule = rule.toLowerCase();
-		if(rule!=="andelim" || rule!=="orintro" || rule!=="notintro" || rule!=="notelim" || rule!=="efq")
-			return false;
-		return true;
+		if(rule==="andelim" || rule==="orintro" || rule==="notintro" || rule==="notelim" || rule==="efq"){
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -363,9 +376,10 @@ $(document).ready(function(){
 	 */
 	function isTwoJustificationRule(rule){
 		rule = rule.toLowerCase();
-		if(rule!=="andintro" || rule!=="impintro" || rule!=="impelim" || rule!=="raa")
-			return false;
-		return true;
+		if(rule==="andintro" || rule==="impintro" || rule==="impelim" || rule==="raa"){
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -1128,9 +1142,13 @@ class ProofValidator {
 
         let dep2line = this.proof[ this._getProofLineIndex(deps[1]) ];
         let dep2prop = dep2line.getProposition();
+        let dep2rule = dep2line.getRule();
 
         if(dep2prop !== "F"){
             this._addProblemToProblemList(currentLineNumber, "your second justification must be falsum (F). Rule usage:  ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            return false;
+        }else if(dep2rule === "assume"){
+            this._addProblemToProblemList(currentLineNumber, "your second justification cannot be an assumption. You must derive falsum from the use of inference rules from the assumption. Rule usage:  ¬A ⊢ F | A   'F deduced from ¬A produces A'");
             return false;
         }
 
