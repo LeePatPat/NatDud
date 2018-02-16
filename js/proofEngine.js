@@ -96,12 +96,12 @@ $(document).ready(function(){
 				//add final row of proof to proof-table
 				var newRow = $("<tr>");
 				var cols = "";
-				cols += '<td style="width: 10%">		 <input name="dependencyInput" class="form-control input-sm" placeholder="Deps." title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
+				cols += '<td style="width: 10%">		 <input name="dependencyInput" class="form-control input-sm" title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
 				cols += '<td style="width: 3%">		 	 <p style="margin: 0" name="lineNum">(1)</p> </td>';
-				cols += '<td style="width: 40%">		 <input name="proofLineInput" class="form-control input-sm" placeholder="Proof Line (use symbols & F for ⊥)" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
-				cols += '<td>							 <select name="ruleInput" class="selectpicker form-control input-sm"><option disabled selected value="null">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim">∧-elim</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro">∨-intro</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
-				cols += '<td style="width: 10%">		 <input name="justificationInput" class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
-				cols += '<td style="visibility: hidden"> <button class="btn-danger btn-sm btnCheckRow">?</button> </td>';
+				cols += '<td style="width: 40%">		 <input name="proofLineInput" class="form-control input-sm" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
+				cols += '<td>							 <select name="ruleInput" class="selectpicker form-control input-sm"><option disabled selected value="null"></option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim">∧-elim</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro">∨-intro</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
+				cols += '<td style="width: 10%">		 <input name="justificationInput" class="form-control input-sm" title="Rule justifications: e.g. 1,2"></td>';
+				cols += '<td> 							 <button class="btn-success btn-sm btnCheckRow">?</button> </td>';
 				cols += '<td style="visibility: hidden"> <button class="btn-danger btn-sm btnDelRow">x</button> </td>';
 				cols += '<td> 							 <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
 				cols += '<td style="visibility: hidden"> <button class="btn-info btn-sm btnAddRowBelow">↓</button> </td>';
@@ -497,11 +497,11 @@ $(document).ready(function(){
 	 */
 	function getCleanRow(){
 		var cols = "";
-			cols += '<td style="width: 10%">	<input name="dependencyInput" class="form-control input-sm" placeholder="Deps." title="Dependencies: e.g. 1,2"></td>';
+			cols += '<td style="width: 10%">	<input name="dependencyInput" class="form-control input-sm" title="Dependencies: e.g. 1,2"></td>';
 			cols += '<td style="width: 3%">		<p style="margin: 0" name="lineNum"></p></td>';
-			cols += '<td style="width: 40%">	<input name="proofLineInput" class="form-control input-sm" placeholder="Proof Line (use symbols or F for ⊥)" title="Proposition: use symbols above or F for falsum"></td>';
-			cols += '<td>						<select name="ruleInput" class="selectpicker form-control input-sm"><option value="null" style="display: none">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim">∧-elim</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro">∨-intro</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
-			cols += '<td style="width: 10%">	<input name="justificationInput" class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
+			cols += '<td style="width: 40%">	<input name="proofLineInput" class="form-control input-sm" title="Proposition: use symbols above or F for falsum"></td>';
+			cols += '<td>						<select name="ruleInput" class="selectpicker form-control input-sm"><option value="null" style="display: none"></option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim">∧-elim</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro">∨-intro</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
+			cols += '<td style="width: 10%">	<input name="justificationInput" class="form-control input-sm" title="Rule justifications: e.g. 1,2"></td>';
 			cols += '<td> <button class="btn-success btn-sm btnCheckRow">?</button> </td>';
 			cols += '<td> <button class="btn-danger btn-sm btnDelRow">x</button> </td>';
 			cols += '<td> <button class="btn-info btn-sm btnAddRowAbove">↑</button> </td>';
