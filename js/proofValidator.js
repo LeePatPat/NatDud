@@ -489,8 +489,11 @@ class ProofValidator {
             this._addProblemToProblemList(currentLineNumber, "the antecedent (left-side) of the implication you are trying to introduce must be an assumption. Ensure that you only use impIntro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
             return false;
         }else if(dep2rule === "assume"){ //consequent is not an inference rule
-            this._addProblemToProblemList(currentLineNumber, "the consequent (right-side) of the implication you are trying to introduce must be a product of an inference rule. Ensure that you only use impIntro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
-            return false;
+            //A->A on its own assumption line is a valid proof, so we use this:
+            if(dep1line.getLineNum() !== dep2line.getLineNum()){
+                this._addProblemToProblemList(currentLineNumber, "the consequent (right-side) of the implication you are trying to introduce must be a product of an inference rule. Ensure that you only use impIntro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
+                return false;
+            }
         }
 
         //line dependency checks
