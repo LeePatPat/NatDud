@@ -388,7 +388,7 @@ $(document).ready(function(){
 		});
 
 		if(!valid){
-			displayFeedback("[Line " +invalidLineNum+"]: This line is not a wff. Perhaps you meant: " + actualString);
+			displayFeedback("[Line " +invalidLineNum+"]: This line is not a wff. Perhaps you meant: " + toNatdudString(actualString));
 			return false;
 		}
 
