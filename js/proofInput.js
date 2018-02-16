@@ -353,6 +353,13 @@ $(document).ready(function(){
 		}
 	});
 
+	//when enter key is pressed on formula entry, trigger formula submission
+	$("#formula").keypress(function(e) {
+	    if(e.which == 13){
+	    	$("#logic-submit").trigger("click");
+	    }
+	});
+
 
 	///////////////////////////////////////////////////////////////////////////////
 	////////////////FUNCTIONS//////////////////////////////////////////////////////
@@ -514,6 +521,7 @@ $(document).ready(function(){
 	 *	@return {String} newFormula - A tombstone-compatible string
 	 */	
 	function toTombstoneString(formula){
+		formula = formula.toUpperCase();
 		formula = formula.replace(new RegExp("→", "g"), "->");
 		formula = formula.replace(new RegExp("∧", "g"), "&");
 		formula = formula.replace(new RegExp("∨", "g"), "||");
@@ -529,6 +537,7 @@ $(document).ready(function(){
 	 *	@return {String} newFormula - A tombstone-compatible string
 	 */	
 	function toNatdudString(formula){
+		formula = formula.toUpperCase();
 		formula = formula.replace(new RegExp("->", "g"), "→");
 		formula = formula.replace(new RegExp("&", "g"), "∧");
 		formula = formula.replace(new RegExp(/\|\|/, "g"), "∨");
@@ -544,6 +553,7 @@ $(document).ready(function(){
 	 *	@return {String} newFormula - formula string with logic symbols
 	 */	
 	function toUserDisplayString(formula){
+		formula = formula.toUpperCase();
 		formula = formula.replace(new RegExp("->", "g"), "→");
 		formula = formula.replace(new RegExp(">", "g"), "→");
 		formula = formula.replace(new RegExp("&&", "g"), "∧");
