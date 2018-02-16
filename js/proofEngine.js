@@ -220,7 +220,7 @@ $(document).ready(function(){
 
 		var valid = true,
 			invalidLineNum = -1,
-			actualString = "";
+			errorString = "";
 		$("#proof-table tr").each(function(i, row){
 			var $row   = $(row),
 				$deps  = $row.find('input[name*="dependencyInput"]').val().replace(/\s/g,''),
@@ -229,12 +229,22 @@ $(document).ready(function(){
 				$just  = $row.find('input[name*="justificationInput"]').val().toUpperCase().replace(/\s/g,'');
 
 			//check if current line is wff
-			let currentTombstoneObject = new tombstone.Statement( toTombstoneString($line) );
-			let currentTombstoneString = toTombstoneString(currentTombstoneObject.statement);
+			let currentTombstoneObject = null;
+			let currentTombstoneString = null;
+			try{
+				currentTombstoneObject = new tombstone.Statement( toTombstoneString($line) );
+				currentTombstoneString = toTombstoneString(currentTombstoneObject.statement);
+			}catch(e){
+				valid = false;
+				invalidLineNum = i+1;
+				errorString = "[Line " +invalidLineNum+"]: Formula syntax error.";
+				return false; //break
+			}
+
 			if(currentTombstoneString !== to103wff(currentTombstoneString) ){
 				valid = false;
 				invalidLineNum = i+1;
-				actualString = to103wff(currentTombstoneString);
+				errorString = "[Line " +invalidLineNum+"]: Formula is not a wff. Perhaps you meant: " + toNatdudString(to103wff(currentTombstoneString));
 				return false; //break
 			}
 
@@ -250,7 +260,7 @@ $(document).ready(function(){
 		});
 
 		if(!valid){
-			displayFeedback("[Line " +invalidLineNum+"]: Formula is not a wff. Perhaps you meant: " + toNatdudString(actualString));
+			displayFeedback(errorString);
 			return false;
 		}
 
