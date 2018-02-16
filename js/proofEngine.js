@@ -97,6 +97,7 @@ $(document).ready(function(){
 				var newRow = $("<tr>");
 				var cols = "";
 				cols += '<td style="width: 10%">		 <input name="dependencyInput" class="form-control input-sm" placeholder="Deps." title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
+				cols += '<td style="width: 3%">		 	 <p style="margin: 0" name="lineNum">(1)</p> </td>';
 				cols += '<td style="width: 40%">		 <input name="proofLineInput" class="form-control input-sm" placeholder="Proof Line (use symbols & F for ⊥)" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
 				cols += '<td>							 <select name="ruleInput" class="selectpicker form-control input-sm"><option disabled selected value="null">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim">∧-elim</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro">∨-intro</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
 				cols += '<td style="width: 10%">		 <input name="justificationInput" class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
@@ -248,18 +249,21 @@ $(document).ready(function(){
 		if( $("#proof-table > tr").length > 1 ){
 			$(this).closest("tr").remove(); //remove the closest row to the button
 		}
+		updateRowNumbers();
 	});
 	$("#proof-area").on("click", "#proof-table .btnAddRowAbove", function(){
 		var newRow = $("<tr>");
 		var cols = getCleanRow();
 		newRow.append(cols);
 		newRow.insertBefore($(this).parents().closest("tr")); //insert fresh row before current row
+		updateRowNumbers();
 	});
 	$("#proof-area").on("click", "#proof-table .btnAddRowBelow", function(){
 		var newRow = $("<tr>");
 		var cols = getCleanRow();
 		newRow.append(cols);
 		newRow.insertAfter($(this).parent().closest("tr")); //insert fresh row after current row
+		updateRowNumbers();
 	});
 	$("#proof-area").on("click", "#proof-table .btnCheckRow", function(){
 		let formulaTombstoneObject = null;
@@ -355,6 +359,20 @@ $(document).ready(function(){
 	////////////////FUNCTIONS//////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 *	A function that updates the line numbers for each line after a row is added or deleted
+	 */
+	function updateRowNumbers(){
+		//for each row in proof-table
+		$("#proof-table tr").each(function(i, row){
+			let $row = $(row),
+				$lineNum = $row.find('p[name*="lineNum"]'),
+				newLineNum = i+1;
+
+			$lineNum.text( "(" + newLineNum + ")" );
+		});
+	}
 
 	/**
 	 *	A function to check if the given rule string is a rule that requires exactly one justification
@@ -480,6 +498,7 @@ $(document).ready(function(){
 	function getCleanRow(){
 		var cols = "";
 			cols += '<td style="width: 10%">	<input name="dependencyInput" class="form-control input-sm" placeholder="Deps." title="Dependencies: e.g. 1,2"></td>';
+			cols += '<td style="width: 3%">		<p style="margin: 0" name="lineNum"></p></td>';
 			cols += '<td style="width: 40%">	<input name="proofLineInput" class="form-control input-sm" placeholder="Proof Line (use symbols or F for ⊥)" title="Proposition: use symbols above or F for falsum"></td>';
 			cols += '<td>						<select name="ruleInput" class="selectpicker form-control input-sm"><option value="null" style="display: none">select rule</option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim">∧-elim</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro">∨-intro</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option><option value="efq">⊥-elim</option></select></td>';
 			cols += '<td style="width: 10%">	<input name="justificationInput" class="form-control input-sm" placeholder="Justifications" title="Rule justifications: e.g. 1,2"></td>';
