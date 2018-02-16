@@ -215,14 +215,28 @@ $(document).ready(function(){
 	$("body").on("click", "#proof-check", function(){
 		//loop through each line of the proof table and display feedback
 		var proofData = [], //array of ProofLine objects. Aka the proof.
-			proofValid = true;
+			proofValid = true,
 			counter = 1;
+
+		var valid = true,
+			invalidLineNum = -1,
+			actualString = "";
 		$("#proof-table tr").each(function(i, row){
 			var $row   = $(row),
 				$deps  = $row.find('input[name*="dependencyInput"]').val().replace(/\s/g,''),
 				$line  = $row.find('input[name*="proofLineInput"]').val().toUpperCase().replace(/\s/g,''),
 				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().replace(/\s/g,''),
 				$just  = $row.find('input[name*="justificationInput"]').val().toUpperCase().replace(/\s/g,'');
+
+			//check if current line is wff
+			let currentTombstoneObject = new tombstone.Statement( toTombstoneString($line) );
+			let currentTombstoneString = toTombstoneString(currentTombstoneObject.statement);
+			if(currentTombstoneString !== to103wff(currentTombstoneString) ){
+				valid = false;
+				invalidLineNum = i+1;
+				actualString = to103wff(currentTombstoneString);
+				return false; //break
+			}
 
 			$row.find('input[name*="proofLineInput"]').val( toNatdudString($line) );
 			$row.find('input[name*="dependencyInput"]').val( $deps );
@@ -235,6 +249,10 @@ $(document).ready(function(){
 			proofData.push(new ProofLine($deps, counter++, toTombstoneString($line), $rule, $just));
 		});
 
+		if(!valid){
+			displayFeedback("[Line " +invalidLineNum+"]: Formula is not a wff. Perhaps you meant: " + toNatdudString(actualString));
+			return false;
+		}
 
 		var proof_validator = new ProofValidator(new tombstone.Statement(toTombstoneString(formulaString)).tree["tree"][0], proofData, true);
 
@@ -266,26 +284,40 @@ $(document).ready(function(){
 		updateRowNumbers();
 	});
 	$("#proof-area").on("click", "#proof-table .btnCheckRow", function(){
+		var $row     	= $(this).parent().parent();
+		var currLineNum = $row.index()+1;
+		var currLine 	= $row.find("input[name='proofLineInput']").val().replace(/\s/g,'').toUpperCase();
+
+
+		//check if tombstone object is sensible
 		let formulaTombstoneObject = null;
 		let formulaTree = null;
 		let partialProofData = []; //array of ProofLine objects
 		try{
-			formulaTombstoneObject = new tombstone.Statement( toTombstoneString(formulaString) );
+			formulaTombstoneObject = new tombstone.Statement( toTombstoneString(currLine) );
 			formulaTree = formulaTombstoneObject.tree["tree"][0];
 		}catch(e){
-			displayFeedback("The line you have attempted to check is not a WFF.");
+			displayFeedback("[Line " + currLineNum + "]: Formula syntax error.");
 			return false;
 		}
 
-		var $row     	= $(this).parent().parent();
-		var currLineNum = $row.index()+1;
+
+
+		//check if current line is a WFF
+		let formulaStatementString = toTombstoneString(formulaTombstoneObject.statement);
+		let statementStringWff = to103wff(formulaStatementString);
+		if(formulaStatementString !== statementStringWff){
+			displayFeedback("[Line " + currLineNum + "]: Formula is not a wff. Perhaps you meant: " + toNatdudString(statementStringWff));
+			return false;
+		}
+
+
+
 		var currDeps    = $row.find("input[name='dependencyInput']").val().replace(/\s/g,'').split(',');
-		var currLine 	= $row.find("input[name='proofLineInput']").val().replace(/\s/g,'').toUpperCase();
 		var currRule 	= $row.find("select[name='ruleInput']").find(":selected").val().toLowerCase();
 		var currJust 	= $row.find("input[name='justificationInput']").val().replace(/\s/g,'').split(',');
 			currDeps 	= clearEmptyStringsFromArray(currDeps);
 			currJust 	= clearEmptyStringsFromArray(currJust);
-
 
 		//blank line and justification checking
 		if(currLine === ""){ //line is blank
@@ -309,8 +341,11 @@ $(document).ready(function(){
 		}
 
 
+		var valid = true,
+			invalidLineNum = -1,
+			actualString = "";
 		//loop through all table rows up until the row that wants to be checked
-		$("#proof-table tr").each(function(i, row){
+		$("#proof-table tr").each(function(i, row){	
 			if(i+1 === currLineNum) return false; //we've reached the current line, break
 			if( $.inArray( (i+1).toString(), currJust ) === -1 ) return true; //skip to next line if this line is not in the justifications
 
@@ -319,6 +354,17 @@ $(document).ready(function(){
 				$line  = $row.find('input[name*="proofLineInput"]').val().toUpperCase().replace(/\s/g,''),
 				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().replace(/\s/g,''),
 				$just  = $row.find('input[name*="justificationInput"]').val().toUpperCase().replace(/\s/g,'');
+
+			//check if current line is wff
+			let currentTombstoneObject = new tombstone.Statement( toTombstoneString($line) );
+			let currentTombstoneString = toTombstoneString(currentTombstoneObject.statement);
+			if(currentTombstoneString !== to103wff(currentTombstoneString) ){
+				valid = false;
+				invalidLineNum = i+1;
+				actualString = to103wff(currentTombstoneString);
+				return false; //break
+			}
+
 
 			$row.find('input[name*="proofLineInput"]').val( toNatdudString($line) );
 			$row.find('input[name*="dependencyInput"]').val( $deps );
@@ -330,10 +376,18 @@ $(document).ready(function(){
 
 			partialProofData.push(new ProofLine($deps, (i+1).toString(), toTombstoneString($line), $rule, $just));
 		});
+
+		if(!valid){
+			displayFeedback("[Line " +invalidLineNum+"]: This line is not a wff. Perhaps you meant: " + actualString);
+			return false;
+		}
+
 		partialProofData.push(new ProofLine(currDeps, currLineNum.toString(), toTombstoneString(currLine), currRule, currJust)); //final line
 	
 		for(var j=0; j<partialProofData.length; j++)		 //print debug code
 			console.log(partialProofData[j].getLineAsString());
+
+
 
 		let proof_line_validator = null;
 		try{
@@ -342,13 +396,10 @@ $(document).ready(function(){
 			displayFeedback("[Line " +currLineNum+"]: This line is not valid. Perhaps check the line numbers used for justifying the rule usage.");
 		}
 
-
 		if(proof_line_validator!=null && proof_line_validator.isProofValid()){ //proof is valid
 			displayValidFeedback("[Line " +currLineNum+"]: This line is currently valid. Rule usage is valid and line dependencies are correct.");
-
 		}else if(proof_line_validator!=null && !proof_line_validator.isProofValid()){ //proof is not valid
 			displayFeedback(proof_line_validator.getFeedback());
-
 		}else{
 			console.log("proof_line_validator is somehow null.");
 		}
