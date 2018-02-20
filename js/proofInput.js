@@ -140,7 +140,7 @@ $(document).ready(function(){
 	//add, remove, check, clear button event listeners
 	$("body").on("click", "#proof-add", function(){
 		var formula = $("#proof-formula-input").val().toUpperCase();
-		formula = formula.replace(new RegExp("⇒", "g"), "->");
+		formula = formula.replace(new RegExp("→", "g"), "->");
 		formula = formula.replace(new RegExp("∧", "g"), "&");
 		formula = formula.replace(new RegExp("∨", "g"), "||");
 		formula = formula.replace(new RegExp("¬", "g"), "~");
