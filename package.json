@@ -7,7 +7,9 @@
     "build": "browserify js/proofInput.js -o js/proofEngine.js",
     "watch": "watchify js/proofInput.js -o js/proofEngine.js",
     "buildTest": "browserify test_framework/test_framework.js -o test_framework/test_framework_compiled.js",
-    "watchTest": "watchify test_framework/test_framework.js -o test_framework/test_framework_compiled.js"
+    "watchTest": "watchify test_framework/test_framework.js -o test_framework/test_framework_compiled.js",
+    "buildQUnit": "browserify QUnit/tests.js -o QUnit/testsCompiled.js",
+    "watchQUnit": "watchify QUnit/tests.js -o QUnit/testsCompiled.js"
   },
   "repository": {
     "type": "git",
@@ -20,6 +22,7 @@
     "watchify": "^3.9.0"
   },
   "dependencies": {
-    "jquery": "^3.2.1"
+    "jquery": "^3.2.1",
+    "qunit": "^2.5.1"
   }
 }
