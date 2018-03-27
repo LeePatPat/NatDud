@@ -1,7 +1,7 @@
 {
   "name": "natdud",
   "version": "1.0.0",
-  "description": "",
+  "description": "A natural deduction checker for CS103",
   "main": "js/proofEngine.js",
   "scripts": {
     "build": "browserify js/proofInput.js -o js/proofEngine.js",
