@@ -5,6 +5,51 @@ var tombstone		= require('../js/tombstone.min.js');
 var $				= require('jquery');
 var QUnit			= require('qunit');
 
+/**
+**************************Proof Line***********************
+*/
+QUnit.module("Proof Line", function(){
+
+	QUnit.test( "Line Dependencies" , function( assert ) {
+		var line = new ProofLine([1,2,3], 1, "A", "assume", []);
+
+		assert.deepEqual( line.getDependencies() , [1,2,3] , "getDependencies() returns correct array of line dependencies");
+	});
+
+	QUnit.test( "Line Number" , function( assert ) {
+		var line = new ProofLine([1,2,3], 1, "A", "assume", []);
+
+		assert.equal( line.getLineNum() , 1 , "getLineNum() returns correct line number");
+	});
+
+	QUnit.test( "Line Formula" , function( assert ) {
+		var line = new ProofLine([1,2,3], 1, "A->(B&C)", "assume", []);
+		
+		assert.equal( line.getProposition() , "A->(B&C)" , "getProposition() returns correct formula string");
+	});
+
+	QUnit.test( "Line Rule" , function( assert ) {
+		var line = new ProofLine([1,2,3], 1, "A->(B&C)", "assume", []);
+		
+		assert.equal( line.getRule() , "assume" , "getRule() returns correct rule string");
+	});
+
+	QUnit.test( "Line Rule References" , function( assert ) {
+		var line = new ProofLine([1,2,3], 1, "A->(B&C)", "impintro", [1,2,3,4]);
+		
+		assert.deepEqual( line.getRuleDependencies() , [1,2,3,4] , "getRule() returns correct string");
+	});
+
+	QUnit.test( "Line As String" , function( assert ) {
+		var line = new ProofLine([1,2,3], 1, "A->(B&C)", "assume", []);
+		assert.equal( line.getLineAsString() , "1,2,3 (1) A->(B&C) assume" , "getRule() returns correct string for assumption");
+
+		line = new ProofLine([1,2,3], 1, "A->(B&C)", "impintro", [1,2]);
+		assert.equal( line.getLineAsString() , "1,2,3 (1) A->(B&C) impintro 1,2" , "getRule() returns correct string for anything but assumption");
+	});
+});
+
+
 /** 
 **************************treeToFormula********************
 */
@@ -1241,6 +1286,9 @@ QUnit.module("Proof Valiadator - Rule Function Units", function() {
 	});
 
 });
+
+
+
 
 function stringToParseTree(str){
 	return new tombstone.Statement(str).tree["tree"][0];
