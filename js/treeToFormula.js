@@ -1,4 +1,9 @@
 //DEFAULT VALUE OF operandNo SHOULD ALWAYS BE 0 (ZERO)
+/**
+ *	A function to transform Tombstone's parse tree object to CS103 WFF
+ *	@param {ParseTree} formulaTree - parse tree object
+ *	@param {Number}	   operandNo   - number to keep track of useless parentheses
+ */
 function treeToFormula(formulaTree, operandNo){
 	//base cases
 	if(!("children" in formulaTree)) //if a literal

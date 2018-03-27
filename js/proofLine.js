@@ -2,7 +2,7 @@
 class ProofLine {
     /**
      * @param {Array.number} dependencies       - assumption dependencies
-     * @param {string} lineNum                  - line number
+     * @param {Number} lineNum                  - line number
      * @param {string} proposition              - proposition result from assumption or inference rule
      * @param {string} rule                     - rule used (or assumption)
      * @param {Array.number} ruleDependencies   - line numbers that given inference rule depends on
