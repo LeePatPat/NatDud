@@ -137,71 +137,7 @@ $(document).ready(function(){
 		////
 	});
 
-	//add, remove, check, clear button event listeners
-	$("body").on("click", "#proof-add", function(){
-		var formula = $("#proof-formula-input").val().toUpperCase();
-		formula = formula.replace(new RegExp("→", "g"), "->");
-		formula = formula.replace(new RegExp("∧", "g"), "&");
-		formula = formula.replace(new RegExp("∨", "g"), "||");
-		formula = formula.replace(new RegExp("¬", "g"), "~");
-		formula = formula.replace(new RegExp("⊥", "g"), "F");
-		formula = formula.replace(new RegExp("f", "g"), "F");
-
-		var statement = null;
-		try {
-			statement = new tombstone.Statement( formula ); //check if attempted add on proof is wff
-		}catch (e){
-			return false;
-		}
-
-		if(!($("#proof-formula-input").val().trim().length === 0)){ //if logic inputbox is not empty && wff
-
-			var currentLineIdDivString = "proof-line-number-"+currentLine;
-			var currentLineDependencies = $('#proof-dependencies-input').val();
-			var currentLineProposition  = $('#proof-formula-input').val();
-			var currentLineRule 		= $('#proof-rule-input').val();
-			var currentLineRuleJusts	= $('#proof-rule-justification-input').val();
-
-
-			var $proofLine = $("<div id="+currentLineIdDivString+"></div>");
-			var 	$proofLineDependenciesSpan = $("<span id='span-proof-dependencies-"+currentLine+"'>"+currentLineDependencies+"</span>");
-			var 	$proofLineNumberSpan 	   = $("<span id='span-proof-number-"+currentLine+"'>("+currentLine+")</span>");
-			var 	$proofLinePropositionSpan  = $("<span id='span-proof-proposition-"+currentLine+"'>"+currentLineProposition+"</span>");
-			var 	$proofLineJustsSpan 	   = $("<span id='span-proof-justifications-"+currentLine+"'>"+currentLineRuleJusts+"</span>");
-			var 	$proofLineRuleSpan 		   = $("<span id='span-proof-rule-"+currentLine+"'>"+currentLineRule+"</span>");
-
-			$('#proof-list').append($proofLine);
-			$("#"+currentLineIdDivString).append($proofLineDependenciesSpan);
-			$("#"+currentLineIdDivString).append($proofLineNumberSpan);
-			$("#"+currentLineIdDivString).append($proofLinePropositionSpan);
-			$("#"+currentLineIdDivString).append($proofLineJustsSpan);
-			$("#"+currentLineIdDivString).append($proofLineRuleSpan);
-			$("#"+currentLineIdDivString).css("margin-right", "15%");
-
-			$('#proof-list').css('padding-left', '2%');
-			$('#proof-list').css('padding-right', '2%');
-
-			$("#span-proof-dependencies-"+currentLine).css("padding-left", "8%");
-			$("#span-proof-dependencies-"+currentLine).css("margin-right", "8%");
-
-			$("#span-proof-number-"+currentLine).css("padding-right", "5%");
-
-			//proposition in here, if need be
-
-			$("#span-proof-rule-"+currentLine).css("float", "right");
-			$("#span-proof-rule-"+currentLine).css("padding-right", "1%");
-
-			$("#span-proof-justifications-"+currentLine).css("float", "right");
-			
-			currentLine++;
-		}
-	});
-	$("body").on("click", "#proof-remove", function(){
-		var currentLineId = "proof-line-number-" + (currentLine-1);
-		$("#" + currentLineId).remove();
-		
-		if(--currentLine === 0) currentLine = 1;
-	});
+	//check and clear button event listeners
 	$("body").on("click", "#proof-clear", function(){
 		currentLine = 1;
 		formulaValid = false;
@@ -269,6 +205,8 @@ $(document).ready(function(){
 			displayFeedback( proof_validator.getFeedback() );
 		else
 			displayValidFeedback( proof_validator.getFeedback() );
+
+		console.log(proof_validator);
 	});
 
 	//row button actions (delete row, add above, add below)
@@ -333,19 +271,19 @@ $(document).ready(function(){
 			displayFeedback("[Line " + currLineNum + "]: You cannot validate a blank line.");
 			return false;
 		}else if(currRule === "assume" && currJust.length !== 0){ //if rule is assume AND the number of justifications is not 0
-			displayFeedback("[Line " + currLineNum + "]: Assume does not require any rule justifications.");
+			displayFeedback("[Line " + currLineNum + "]: Assumptions must not reference any proof lines.");
 			return false;
 		}else if(isOneJustificationRule(currRule) && currJust.length !== 1){ //if this is a one justification rule AND rule is not using exactly 1 justification
-			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY one rule justification.");
+			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY one line reference.");
 			return false;
 		}else if(isTwoJustificationRule(currRule) && currJust.length !== 2){ //if this is a two justificationrule  AND rule is not using exactly 2 justifications
-			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY two rule justifications.");
+			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY two line references.");
 			return false;
 		}else if(currRule.toLowerCase() === "orelim" && currJust.length !== 5){ //if current rule is orelim AND rule does not use 5 justifications
-			displayFeedback("[Line " + currLineNum + "]: Or-Elimination requires EXACTLY five rule justifications.");
+			displayFeedback("[Line " + currLineNum + "]: Or-Elimination requires EXACTLY five line references.");
 			return false;
 		}else if(currJust.length === 3 || currJust.length === 4 || currJust.length > 5){ //if three or four or more than five justifications are used
-			displayFeedback("[Line " + currLineNum + "]: The number of rule justifications is incorrect.");
+			displayFeedback("[Line " + currLineNum + "]: The number of rule references is incorrect.");
 			return false;
 		}
 
@@ -402,7 +340,7 @@ $(document).ready(function(){
 		try{
 			proof_line_validator = new ProofValidator(formulaTree, partialProofData, false); //partial validation only
 		}catch(e){
-			displayFeedback("[Line " +currLineNum+"]: This line is not valid. Perhaps check the line numbers used for justifying the rule usage.");
+			displayFeedback("[Line " +currLineNum+"]: This line is not valid. Perhaps check the rule reference line numbers.");
 		}
 
 		if(proof_line_validator!=null && proof_line_validator.isProofValid()){ //proof is valid
@@ -444,7 +382,7 @@ $(document).ready(function(){
 	/**
 	 *	A function to check if the given rule string is a rule that requires exactly one justification
 	 *	@param  {String}  rule - rule in the form of a string
-	 *	@return {Boolean} newArr - true if rule uses exactly one justification
+	 *	@returns {Boolean} newArr - true if rule uses exactly one justification
 	 */
 	function isOneJustificationRule(rule){
 		rule = rule.toLowerCase();
@@ -457,7 +395,7 @@ $(document).ready(function(){
 	/**
 	 *	A function to check if the given rule string is a rule that requires exactly two justifications
 	 *	@param  {String}  rule - rule in the form of a string
-	 *	@return {Boolean} newArr - true if rule uses exactly two justifications
+	 *	@returns {Boolean} newArr - true if rule uses exactly two justifications
 	 */
 	function isTwoJustificationRule(rule){
 		rule = rule.toLowerCase();
@@ -470,7 +408,7 @@ $(document).ready(function(){
 	/**
 	 *	A function to clean an array of "" strings. Mainly for dependencies and justifications
 	 *	@param  {Array.String}    arr - array that may contain "" elements
-	 *	@return {Array.String} newArr - array with "" elements removed
+	 *	@returns {Array.String} newArr - array with "" elements removed
 	 */
 	function clearEmptyStringsFromArray(arr){
 		var newArr = [];
@@ -527,7 +465,7 @@ $(document).ready(function(){
 	/**
 	 *	A function to change the given formula string to CS103's WFF standards
 	 *	@param  {String}  formula    - formula to change to 103's WFF standards
-	 *	@return {String}  newFormula - formula transformed to CS103 WFF
+	 *	@returns {String}  newFormula - formula transformed to CS103 WFF
 	 */
 	function to103wff(formula){
 		//convert to tombstone-compaitible formula string
@@ -560,7 +498,7 @@ $(document).ready(function(){
 
 	/**
 	 *	A function to get a fresh row string for 
-	 *	@return {String} - Returns a row of inputs for the user to use
+	 *	@returns {String} - Returns a row of inputs for the user to use
 	 */
 	function getCleanRow(){
 		var cols = "";
@@ -579,7 +517,7 @@ $(document).ready(function(){
 	/**
 	 *	A function that changes a formula with special symbols into a Tombstone-compatitible string
 	 *	@param {String} formula 	- NatDud formula string
-	 *	@return {String} newFormula - A tombstone-compatible string
+	 *	@returns {String} newFormula - A tombstone-compatible string
 	 */	
 	function toTombstoneString(formula){
 		formula = formula.toUpperCase();
@@ -595,7 +533,7 @@ $(document).ready(function(){
 	/**
 	 *	A function that changes a formula with a tombstome-compatible string to a natdud format string
 	 *	@param {String} formula 	- tombstone string
-	 *	@return {String} newFormula - A tombstone-compatible string
+	 *	@returns {String} newFormula - A tombstone-compatible string
 	 */	
 	function toNatdudString(formula){
 		formula = formula.toUpperCase();
@@ -611,7 +549,7 @@ $(document).ready(function(){
 	/**
 	 *	A function that changes a formula on the fly for better interactiveness
 	 *	@param {String} formula 	- formula string with > F ~ etc symbols
-	 *	@return {String} newFormula - formula string with logic symbols
+	 *	@returns {String} newFormula - formula string with logic symbols
 	 */	
 	function toUserDisplayString(formula){
 		formula = formula.toUpperCase();
@@ -630,7 +568,7 @@ $(document).ready(function(){
 	/**
 	 *	A function to determine if a provided logic formula is provable by Natural Deduction (a tautology)
 	 *	@param {String} formula - User's formula input
-	 *	@return {boolean} - Returns whether or not the logic formula is a tautology
+	 *	@returns {boolean} - Returns whether or not the logic formula is a tautology
 	 */
 	function isProvable (formula) {
 		//convert to tombstone-compatible formula string
@@ -693,7 +631,7 @@ $(document).ready(function(){
 	/**
 	 *	function to check if statement is a tautology, only when (F)alsum is used
 	 *	@param 	{Statement.Object} s  - statement object
-	 *  @return {boolean} isTautology
+	 *  @returns {boolean} isTautology
 	 */
 	function falsumCheck(statement) {
 		var table = statementToTable(statement);
@@ -708,14 +646,8 @@ $(document).ready(function(){
 
 	/**
 	 * Get all boolean input values for n variables.
-	 *
-	 * @example
-	 * // [ [ true, true ], [ true, false ], [ false, true ], [ false, false ] ]
-	 * getValues(2, [])
-	 *
 	 * @param   {Number} n - The number of variables.
 	 * @param   {Array} t - The array to be recursively filled.
-	 *
 	 * @returns {Array} All possible input values.
 	 */
 	function getValues (n, t) {
@@ -728,13 +660,7 @@ $(document).ready(function(){
 
 	/**
 	 * Get all boolean values for each variable.
-	 *
-	 * @example
-	 * // [ { P: true }, { P: false } ]
-	 * getCases (['P'])
-	 *
-	 * @param   {Array} variables - All variables in a given statement.
-	 *
+	 * @param   {Array} variables - All variables in a given statement.njojmmmmkmkmkmmmmmkkkjjillk,m   b   n     
 	 * @returns {Array} - An array of objects mapping variables to their possible
 	 *  values.
 	 */

@@ -138,71 +138,7 @@ $(document).ready(function(){
 		////
 	});
 
-	//add, remove, check, clear button event listeners
-	$("body").on("click", "#proof-add", function(){
-		var formula = $("#proof-formula-input").val().toUpperCase();
-		formula = formula.replace(new RegExp("→", "g"), "->");
-		formula = formula.replace(new RegExp("∧", "g"), "&");
-		formula = formula.replace(new RegExp("∨", "g"), "||");
-		formula = formula.replace(new RegExp("¬", "g"), "~");
-		formula = formula.replace(new RegExp("⊥", "g"), "F");
-		formula = formula.replace(new RegExp("f", "g"), "F");
-
-		var statement = null;
-		try {
-			statement = new tombstone.Statement( formula ); //check if attempted add on proof is wff
-		}catch (e){
-			return false;
-		}
-
-		if(!($("#proof-formula-input").val().trim().length === 0)){ //if logic inputbox is not empty && wff
-
-			var currentLineIdDivString = "proof-line-number-"+currentLine;
-			var currentLineDependencies = $('#proof-dependencies-input').val();
-			var currentLineProposition  = $('#proof-formula-input').val();
-			var currentLineRule 		= $('#proof-rule-input').val();
-			var currentLineRuleJusts	= $('#proof-rule-justification-input').val();
-
-
-			var $proofLine = $("<div id="+currentLineIdDivString+"></div>");
-			var 	$proofLineDependenciesSpan = $("<span id='span-proof-dependencies-"+currentLine+"'>"+currentLineDependencies+"</span>");
-			var 	$proofLineNumberSpan 	   = $("<span id='span-proof-number-"+currentLine+"'>("+currentLine+")</span>");
-			var 	$proofLinePropositionSpan  = $("<span id='span-proof-proposition-"+currentLine+"'>"+currentLineProposition+"</span>");
-			var 	$proofLineJustsSpan 	   = $("<span id='span-proof-justifications-"+currentLine+"'>"+currentLineRuleJusts+"</span>");
-			var 	$proofLineRuleSpan 		   = $("<span id='span-proof-rule-"+currentLine+"'>"+currentLineRule+"</span>");
-
-			$('#proof-list').append($proofLine);
-			$("#"+currentLineIdDivString).append($proofLineDependenciesSpan);
-			$("#"+currentLineIdDivString).append($proofLineNumberSpan);
-			$("#"+currentLineIdDivString).append($proofLinePropositionSpan);
-			$("#"+currentLineIdDivString).append($proofLineJustsSpan);
-			$("#"+currentLineIdDivString).append($proofLineRuleSpan);
-			$("#"+currentLineIdDivString).css("margin-right", "15%");
-
-			$('#proof-list').css('padding-left', '2%');
-			$('#proof-list').css('padding-right', '2%');
-
-			$("#span-proof-dependencies-"+currentLine).css("padding-left", "8%");
-			$("#span-proof-dependencies-"+currentLine).css("margin-right", "8%");
-
-			$("#span-proof-number-"+currentLine).css("padding-right", "5%");
-
-			//proposition in here, if need be
-
-			$("#span-proof-rule-"+currentLine).css("float", "right");
-			$("#span-proof-rule-"+currentLine).css("padding-right", "1%");
-
-			$("#span-proof-justifications-"+currentLine).css("float", "right");
-			
-			currentLine++;
-		}
-	});
-	$("body").on("click", "#proof-remove", function(){
-		var currentLineId = "proof-line-number-" + (currentLine-1);
-		$("#" + currentLineId).remove();
-		
-		if(--currentLine === 0) currentLine = 1;
-	});
+	//check and clear button event listeners
 	$("body").on("click", "#proof-clear", function(){
 		currentLine = 1;
 		formulaValid = false;
@@ -270,6 +206,8 @@ $(document).ready(function(){
 			displayFeedback( proof_validator.getFeedback() );
 		else
 			displayValidFeedback( proof_validator.getFeedback() );
+
+		console.log(proof_validator);
 	});
 
 	//row button actions (delete row, add above, add below)
@@ -334,19 +272,19 @@ $(document).ready(function(){
 			displayFeedback("[Line " + currLineNum + "]: You cannot validate a blank line.");
 			return false;
 		}else if(currRule === "assume" && currJust.length !== 0){ //if rule is assume AND the number of justifications is not 0
-			displayFeedback("[Line " + currLineNum + "]: Assume does not require any rule justifications.");
+			displayFeedback("[Line " + currLineNum + "]: Assumptions must not reference any proof lines.");
 			return false;
 		}else if(isOneJustificationRule(currRule) && currJust.length !== 1){ //if this is a one justification rule AND rule is not using exactly 1 justification
-			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY one rule justification.");
+			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY one line reference.");
 			return false;
 		}else if(isTwoJustificationRule(currRule) && currJust.length !== 2){ //if this is a two justificationrule  AND rule is not using exactly 2 justifications
-			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY two rule justifications.");
+			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY two line references.");
 			return false;
 		}else if(currRule.toLowerCase() === "orelim" && currJust.length !== 5){ //if current rule is orelim AND rule does not use 5 justifications
-			displayFeedback("[Line " + currLineNum + "]: Or-Elimination requires EXACTLY five rule justifications.");
+			displayFeedback("[Line " + currLineNum + "]: Or-Elimination requires EXACTLY five line references.");
 			return false;
 		}else if(currJust.length === 3 || currJust.length === 4 || currJust.length > 5){ //if three or four or more than five justifications are used
-			displayFeedback("[Line " + currLineNum + "]: The number of rule justifications is incorrect.");
+			displayFeedback("[Line " + currLineNum + "]: The number of rule references is incorrect.");
 			return false;
 		}
 
@@ -403,7 +341,7 @@ $(document).ready(function(){
 		try{
 			proof_line_validator = new ProofValidator(formulaTree, partialProofData, false); //partial validation only
 		}catch(e){
-			displayFeedback("[Line " +currLineNum+"]: This line is not valid. Perhaps check the line numbers used for justifying the rule usage.");
+			displayFeedback("[Line " +currLineNum+"]: This line is not valid. Perhaps check the rule reference line numbers.");
 		}
 
 		if(proof_line_validator!=null && proof_line_validator.isProofValid()){ //proof is valid
@@ -445,7 +383,7 @@ $(document).ready(function(){
 	/**
 	 *	A function to check if the given rule string is a rule that requires exactly one justification
 	 *	@param  {String}  rule - rule in the form of a string
-	 *	@return {Boolean} newArr - true if rule uses exactly one justification
+	 *	@returns {Boolean} newArr - true if rule uses exactly one justification
 	 */
 	function isOneJustificationRule(rule){
 		rule = rule.toLowerCase();
@@ -458,7 +396,7 @@ $(document).ready(function(){
 	/**
 	 *	A function to check if the given rule string is a rule that requires exactly two justifications
 	 *	@param  {String}  rule - rule in the form of a string
-	 *	@return {Boolean} newArr - true if rule uses exactly two justifications
+	 *	@returns {Boolean} newArr - true if rule uses exactly two justifications
 	 */
 	function isTwoJustificationRule(rule){
 		rule = rule.toLowerCase();
@@ -471,7 +409,7 @@ $(document).ready(function(){
 	/**
 	 *	A function to clean an array of "" strings. Mainly for dependencies and justifications
 	 *	@param  {Array.String}    arr - array that may contain "" elements
-	 *	@return {Array.String} newArr - array with "" elements removed
+	 *	@returns {Array.String} newArr - array with "" elements removed
 	 */
 	function clearEmptyStringsFromArray(arr){
 		var newArr = [];
@@ -528,7 +466,7 @@ $(document).ready(function(){
 	/**
 	 *	A function to change the given formula string to CS103's WFF standards
 	 *	@param  {String}  formula    - formula to change to 103's WFF standards
-	 *	@return {String}  newFormula - formula transformed to CS103 WFF
+	 *	@returns {String}  newFormula - formula transformed to CS103 WFF
 	 */
 	function to103wff(formula){
 		//convert to tombstone-compaitible formula string
@@ -561,7 +499,7 @@ $(document).ready(function(){
 
 	/**
 	 *	A function to get a fresh row string for 
-	 *	@return {String} - Returns a row of inputs for the user to use
+	 *	@returns {String} - Returns a row of inputs for the user to use
 	 */
 	function getCleanRow(){
 		var cols = "";
@@ -580,7 +518,7 @@ $(document).ready(function(){
 	/**
 	 *	A function that changes a formula with special symbols into a Tombstone-compatitible string
 	 *	@param {String} formula 	- NatDud formula string
-	 *	@return {String} newFormula - A tombstone-compatible string
+	 *	@returns {String} newFormula - A tombstone-compatible string
 	 */	
 	function toTombstoneString(formula){
 		formula = formula.toUpperCase();
@@ -596,7 +534,7 @@ $(document).ready(function(){
 	/**
 	 *	A function that changes a formula with a tombstome-compatible string to a natdud format string
 	 *	@param {String} formula 	- tombstone string
-	 *	@return {String} newFormula - A tombstone-compatible string
+	 *	@returns {String} newFormula - A tombstone-compatible string
 	 */	
 	function toNatdudString(formula){
 		formula = formula.toUpperCase();
@@ -612,7 +550,7 @@ $(document).ready(function(){
 	/**
 	 *	A function that changes a formula on the fly for better interactiveness
 	 *	@param {String} formula 	- formula string with > F ~ etc symbols
-	 *	@return {String} newFormula - formula string with logic symbols
+	 *	@returns {String} newFormula - formula string with logic symbols
 	 */	
 	function toUserDisplayString(formula){
 		formula = formula.toUpperCase();
@@ -631,7 +569,7 @@ $(document).ready(function(){
 	/**
 	 *	A function to determine if a provided logic formula is provable by Natural Deduction (a tautology)
 	 *	@param {String} formula - User's formula input
-	 *	@return {boolean} - Returns whether or not the logic formula is a tautology
+	 *	@returns {boolean} - Returns whether or not the logic formula is a tautology
 	 */
 	function isProvable (formula) {
 		//convert to tombstone-compatible formula string
@@ -694,7 +632,7 @@ $(document).ready(function(){
 	/**
 	 *	function to check if statement is a tautology, only when (F)alsum is used
 	 *	@param 	{Statement.Object} s  - statement object
-	 *  @return {boolean} isTautology
+	 *  @returns {boolean} isTautology
 	 */
 	function falsumCheck(statement) {
 		var table = statementToTable(statement);
@@ -709,14 +647,8 @@ $(document).ready(function(){
 
 	/**
 	 * Get all boolean input values for n variables.
-	 *
-	 * @example
-	 * // [ [ true, true ], [ true, false ], [ false, true ], [ false, false ] ]
-	 * getValues(2, [])
-	 *
 	 * @param   {Number} n - The number of variables.
 	 * @param   {Array} t - The array to be recursively filled.
-	 *
 	 * @returns {Array} All possible input values.
 	 */
 	function getValues (n, t) {
@@ -729,13 +661,7 @@ $(document).ready(function(){
 
 	/**
 	 * Get all boolean values for each variable.
-	 *
-	 * @example
-	 * // [ { P: true }, { P: false } ]
-	 * getCases (['P'])
-	 *
-	 * @param   {Array} variables - All variables in a given statement.
-	 *
+	 * @param   {Array} variables - All variables in a given statement.njojmmmmkmkmkmmmmmkkkjjillk,m   b   n     
 	 * @returns {Array} - An array of objects mapping variables to their possible
 	 *  values.
 	 */
@@ -793,7 +719,7 @@ $(document).ready(function(){
 class ProofLine {
     /**
      * @param {Array.number} dependencies       - assumption dependencies
-     * @param {string} lineNum                  - line number
+     * @param {Number} lineNum                  - line number
      * @param {string} proposition              - proposition result from assumption or inference rule
      * @param {string} rule                     - rule used (or assumption)
      * @param {Array.number} ruleDependencies   - line numbers that given inference rule depends on
@@ -843,7 +769,7 @@ var tombstone = require('./tombstone.min.js');
 class ProofValidator {
 	/**
 	 * construct validation of given proof a proof is valid iff all assumptions are discharged
-     * @param {Array.Array+} proofTree  - Tree form of original logic formula
+     * @param {Array.Array} proofTree  - Tree form of original logic formula
      * @param {Array.ProofLine} proof   - Proof as data where each line is of ProofLine class
      * @param {Boolean} fullValidation  - boolean to determin whether the validator validates the proof completely or only partially
 	 */
@@ -900,7 +826,7 @@ class ProofValidator {
                 var currentRuleJustification = currentLine.getRuleDependencies();
 
                 if(this.fullValidation===true && i+1 === this.proof.length && currentLineDeps.length > 0){ //fullValidation && last line AND there are still line dependencies
-                    this._addProblemToProblemList(currentLineNumber, "the last line in the proof should not have dependencies. All assumptions should be discharged using inference rules by the final line of the proof.");
+                    this._addProblemToProblemList(currentLineNumber, "The last line in the proof should not have line dependencies. All assumptions should be discharged using inference rules by the final line of the proof.");
                     return false;
                 }else if(currentLineProposition.replace(/ /g,'') === ""){
                     this._addProblemToProblemList(currentLineNumber, "proof lines cannot be empty.");
@@ -910,7 +836,7 @@ class ProofValidator {
                 switch(currentRule){
                     case "assume":
                         if(currentLineDeps.length < 1 || currentLineDeps.length > 1 || Number(currentLineDeps[0]) !== currentLineNumber){
-                            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - the line dependency for an assumption must be itself.");
+                            this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. An assumption depends on itself (only).");
                             return false;
                         }else if(!this.assumeList.includes(currentLineNumber))
                             this.assumeList.push(currentLineNumber);
@@ -936,10 +862,8 @@ class ProofValidator {
                             return false;
                         break;
                     case "orelim": //discharges assumptions
-                        if(!this._orElimCheck(currentLine)){
-                            this._addProblemToProblemList(currentLineNumber, "\nRule usage: A∨B  A⊢C  B⊢C  |  C\n From the example of usage above - to use orElim: have a disjunction (A∨B); assume the left of the disjunction (A), deduce what you need from said assumption (A⊢C); assume the right of the disjunction (B), deduce what you need from said disjunction (B⊢C). As a result, both assumptions are discharged and you can now use C in your proof.");
+                        if(!this._orElimCheck(currentLine))
                             return false;
-                        }
                         break;
                     case "notintro":
                         if(!this._notIntroCheck(currentLine))
@@ -970,10 +894,15 @@ class ProofValidator {
             var currentRule = currentLine.getRule().toLowerCase();
             var currentRuleJustification = currentLine.getRuleDependencies();
 
+            if(currentLineProposition.replace(/ /g,'') === ""){
+                this._addProblemToProblemList(currentLineNumber, "proof lines cannot be empty.");
+                return false;
+            }
+
             switch(currentRule){
                 case "assume":
                     if(currentLineDeps.length < 1 || currentLineDeps.length > 1 || Number(currentLineDeps[0]) !== currentLineNumber){
-                        this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - the line dependency for an assumption must be itself.");
+                        this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. An assumption depends on itself (only).");
                         return false;
                     }else if(!this.assumeList.includes(currentLineNumber))
                         this.assumeList.push(currentLineNumber);
@@ -999,10 +928,8 @@ class ProofValidator {
                         return false;
                     break;
                 case "orelim": //discharges assumptions
-                    if(!this._orElimCheck(currentLine)){
-                        this._addProblemToProblemList(currentLineNumber, "\nRule usage: A∨B  A⊢C  B⊢C  |  C\n From the example of usage above - to use orElim: have a disjunction (A∨B); assume the left of the disjunction (A), deduce what you need from said assumption (A⊢C); assume the right of the disjunction (B), deduce what you need from said disjunction (B⊢C). As a result, both assumptions are discharged and you can now use C in your proof.");
+                    if(!this._orElimCheck(currentLine))
                         return false;
-                    }
                     break;
                 case "notintro":
                     if(!this._notIntroCheck(currentLine))
@@ -1027,8 +954,10 @@ class ProofValidator {
         }
 
         //check assumptions are discharged only when fullValidation flag is active
-        if(this.fullValidation===true && this.assumeList.length > 0)
+        if(this.fullValidation===true && this.assumeList.length > 0){
+            this._addProblemToProblemList(currentLineNumber, "All assumptions have not been discharged.");
             return false;
+        }
 
         this.problemList.push("Proof is valid! Rule usage is valid, line dependencies are correct and all assumptions are discharged.");
         return true; //all assumptions discharged, line dependencies are correct and use of rules are valid; proof is valid
@@ -1047,13 +976,13 @@ class ProofValidator {
         let deps = currentLine.getRuleDependencies();
 
         if(deps.length > 5 || deps.length < 5){ //does not have 5 justifications
-            this._addProblemToProblemList(currentLineNumber, "∨-elim must have exactly 5 rule justifications.");
+            this._addProblemToProblemList(currentLineNumber, "∨-elim must reference exactly five proof lines.");
             return false;
         }else if(deps[0] > deps[1] || deps[1] > deps[2] || deps[2] > deps[3] || deps[3] > deps[4]){ //justifications not in correct order
-            this._addProblemToProblemList(currentLineNumber, "the rule justifications are not in order; they must be in ascending order. E.g. 1,2,3,4,5");
+            this._addProblemToProblemList(currentLineNumber, "the rule justifications are not in order; the validator requires the rule references be in ascending order. E.g. 1,2,3,4,5");
             return false;
         }else if(deps[4] >= currentLineNumber){ //any of the justifications are greater than the current line number
-            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }
 
@@ -1064,7 +993,7 @@ class ProofValidator {
         let dep1tree = new tombstone.Statement(dep1prop).tree["tree"][0];
         let dep1mainOp = dep1tree["name"];
         if(dep1mainOp !== "||"){ //not a disjunction
-            this._addProblemToProblemList(currentLineNumber, "the first justification of ∨-elim must be a disjunction ('or' operation). E.g. A∨B");
+            this._addProblemToProblemList(currentLineNumber, "The first proof line referenced by ∨-elim must be a disjunction ('or' operation), such as A ∨ B.");
             return false;
         }
 
@@ -1074,10 +1003,10 @@ class ProofValidator {
         let dep2prop = dep2line.getProposition();
         let dep2rule = dep2line.getRule(); //assume
         if(dep1leftDisj !== dep2prop){ //left of the conjunction is not the first assumption
-            this._addProblemToProblemList(currentLineNumber, "the second justification must be an assumption of the left-side of the disjunction (e.g. From A∨B, the assumption must be A).");
+            this._addProblemToProblemList(currentLineNumber, "The second proof line referenced by ∨-elim must be an assumption of the left side of the disjunction. For example, from A ∨ B, this must be an assumption of A.");
             return false;
         }else if(dep2rule !== "assume"){ //second justification is not an assumption
-            this._addProblemToProblemList(currentLineNumber, "the second justification is not an assumption. This must be an assumption so that it can be discharged by ∨-elim.");
+            this._addProblemToProblemList(currentLineNumber, "The second proof line referenced is not an assumption. It must be an assumption so that it can be discharged by ∨-elim.");
             return false;
         }
 
@@ -1086,13 +1015,9 @@ class ProofValidator {
         let dep3prop = dep3line.getProposition();
         let dep3rule = dep3line.getRule(); //some inference rule
         if(dep3prop !== prop){ //this justification does not match the current line's proposition
-            this._addProblemToProblemList(currentLineNumber, "the third justification proposition must match the current line's proposition. This is so the assumption from the 2nd justiciation can be discharged.");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the third proof line referenced by ∨-elim must be the same as the formula in the current line.");
             return false;
         }
-        // else if(dep3rule === "assume"){ //the rule for the 3rd justification is an assumption
-        //     this._addProblemToProblemList(currentLineNumber, "the third justification cannot be an assumption. This is not a legitimate way of discharging the 2nd justification assumption, and therefore must be the product of inference rule usage.");
-        //     return false;
-        // }
 
         //fourth justification check
         let dep1rightDisj = treeToFormula(dep1tree["children"][0] , 0); //AvB is now B
@@ -1100,10 +1025,10 @@ class ProofValidator {
         let dep4prop = dep4line.getProposition();
         let dep4rule = dep4line.getRule(); //assume
         if(dep1rightDisj !== dep4prop){ //does not match the right side of the disjunction 
-            this._addProblemToProblemList(currentLineNumber, "the fourth justification must be an assumption of the right-side of the disjunction (e.g. From A∨B, the assumption must be B).");
+            this._addProblemToProblemList(currentLineNumber, "The fourth proof line referenced by ∨-elim must be an assumption of the right side of the disjunction. For example, from A ∨ B, this must be an assumption of B.");
             return false;
         }else if(dep4rule !== "assume"){ //rule for 4th justification is not an assumption
-            this._addProblemToProblemList(currentLineNumber, "the fourth justification is not an assumption. This must be an assumption so that it can be discharged by ∨-elim.");
+            this._addProblemToProblemList(currentLineNumber, "The fourth proof line referenced is not an assumption. It must be an assumption so that it can be discharged by ∨-elim.");
             return false;
         }
 
@@ -1113,13 +1038,9 @@ class ProofValidator {
         let dep5prop = dep5line.getProposition();
         let dep5rule = dep5line.getRule(); //some inference rule
         if(dep5prop !== prop){ //this justification does not match the current line's proposition
-            this._addProblemToProblemList(currentLineNumber, "the fifth justification proposition must match the current line's proposition. This is so the assumption from the 4th justiciation can be discharged.");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the fifth proof line referenced by ∨-elim must be the same as the formula in the current line.");
             return false;
         }
-        // else if(dep5rule === "assume"){ //rule for 5th justification is an assumption 
-        //     this._addProblemToProblemList(currentLineNumber, "the fifth justification cannot be an assumption. This is not a legitimate way of discharging the 4th justification assumption, and therefore must be the product of inference rule usage.");
-        //     return false;
-        // }
 
         //---------------------LINE DEP CHECKS-----------------------------//
         let gammaDeps = dep1line.getDependencies().sort();    //Gamma
@@ -1168,7 +1089,7 @@ class ProofValidator {
         greekSet = new Set(greekSet);
         currDeps = new Set(currDeps);
         if(!this._areSetsEqual(greekSet, currDeps)){
-            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - each of your assumptions used as a rule justification on this line must have their dependencies discharged.");
+            this._addProblemToProblemList(currentLineNumber, "To use ∨-elim, the second and third proof lines referenced should form a sequent. The formula in the third line referenced must depend on the assumption in the second line referenced. The fourth and fifth proof lines referenced should form a sequent. The formula in the fifth line referenced must depend on the assumption in the fourth line referenced. The dependencies should not include the assumption in the second proof line referenced. This assumption should be discharged by ∨-elim. The dependencies should not include the assumption in the fourth proof line referenced. This assumption should be discharged by ∨-elim. The dependencies are incorrect. The dependencies should consist of those for the disjunction (in the first proof line referenced) together with any additional assumptions used in deducing the conclusion (in the third and fifth proof lines referenced) from the two disjuncts (in the second and fourth proof lines referenced).");
             return false;
         }
         //-----------------------END OF LINE DEP CHECK---------------------//
@@ -1197,13 +1118,13 @@ class ProofValidator {
         let deps = currentLine.getRuleDependencies(); //2,3
 
         if(deps.length > 2 || deps.length < 2){ //raa can only have 2 justifications
-            this._addProblemToProblemList(currentLineNumber, "RAA must have exactly 2 rule justifications. Rule usage: ¬A ⊢ F  | A   'F deduced from ¬A produces A'");
+            this._addProblemToProblemList(currentLineNumber, "RAA must reference exactly two proof lines.");
             return false;
         }else if(deps[0] >= currentLineNumber || deps[1] >= currentLineNumber){ //trying to use lines as justification that come after the current line
-            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }else if(deps[0] >= deps[1]){ //first justification comes after the second justification
-            this._addProblemToProblemList(currentLineNumber, "to use RAA, you must deduce Falsum (F) from the a negated assumption. This means that the negated assumption (e.g. ¬A) must come before falsum in the proof. Rule usage: ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            this._addProblemToProblemList(currentLineNumber, "The first proof line referenced by RAA (a negated assumption) must occur before the second (falsum).");
             return false;
         }
 
@@ -1214,7 +1135,7 @@ class ProofValidator {
         let dep1mainOp = dep1tree["name"]; //"~"
 
         if(dep1mainOp !== "~"){ //first justification is not a negation
-            this._addProblemToProblemList(currentLineNumber, "the first justification of RAA must be a negation. E.g. ¬A. Rule usage: ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the first proof line referenced by RAA must be a negation.");
             return false;
         }
 
@@ -1222,10 +1143,10 @@ class ProofValidator {
         let removedNotDep1 = treeToFormula(dep1tree["children"][0], 0); //remove ¬ from the negated proposition. So ¬A is now A
 
         if(dep1line.getRule() !== "assume"){ //first justification is not an assumption
-            this._addProblemToProblemList(currentLineNumber, "the first justification must be an assumption. Rule usage: ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            this._addProblemToProblemList(currentLineNumber, "The first proof line referenced is not an assumption. It must be an assumption so that it can be discharged by RAA.");
             return false;
         }else if(removedNotDep1 !== prop){ //current line is not unnegated version of justification
-            this._addProblemToProblemList(currentLineNumber, "the current line must be a non-negated form of the first justification. Rule usage: ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the first proof line referenced by RAA must be the negation of the formula in the current line.");
             return false;
         }
 
@@ -1235,10 +1156,10 @@ class ProofValidator {
         let dep2rule = dep2line.getRule();
 
         if(dep2prop !== "F"){
-            this._addProblemToProblemList(currentLineNumber, "your second justification must be falsum (F). Rule usage:  ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the second proof line referenced by RAA must be falsum (⊥).");
             return false;
         }else if(dep2rule === "assume"){
-            this._addProblemToProblemList(currentLineNumber, "your second justification cannot be an assumption. You must derive falsum from the use of inference rules from the assumption. Rule usage:  ¬A ⊢ F | A   'F deduced from ¬A produces A'");
+            this._addProblemToProblemList(currentLineNumber, "To use RAA, the two proof lines referenced should form a sequent. The formula in the second line referenced must depend on the assumption in the first line referenced. The dependencies should not include the assumption in the first proof line referenced. This assumption should be discharged by RAA.");
             return false;
         }
 
@@ -1267,7 +1188,7 @@ class ProofValidator {
         newDeps = new Set(newDeps);
         currentLineDeps = new Set(currentLineDeps);
         if(!this._areSetsEqual(newDeps, currentLineDeps)){
-            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for the RAA: remove the dependencies of the assumption justification from the second justification's dependencies.");
+            this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. The dependencies should consist of any additional assumptions used in deducing falsum (in the second proof line referenced) from the negated assumption (in the first proof line referenced).");
             return false;
         }
 
@@ -1294,13 +1215,13 @@ class ProofValidator {
         let mainOperation = tree["name"];
 
         if(mainOperation !== "->"){
-            this._addProblemToProblemList(currentLineNumber, "you have used →-intro but have not introduced an implication. Rule usage: A  B | A->B");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the current line must be an implication.");
             return false;
         }else if(deps.length > 2 || deps.length < 2){
-            this._addProblemToProblemList(currentLineNumber, "→-intro must have exactly 2 rule justifications. Rule usage: A B | A->B");
+            this._addProblemToProblemList(currentLineNumber, "→-intro must reference exactly two proof lines.");
             return false;
         }else if(deps[0] >= currentLineNumber  ||  deps[1] >= currentLineNumber){
-            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }
 
@@ -1316,18 +1237,18 @@ class ProofValidator {
 
 
         if(antecedent !== dep1prop){ //(A)->B  !== A
-            this._addProblemToProblemList(currentLineNumber, "justification values are not correct. The antecedent (left-side) of your implication does not correspond to the 1st justification line number you have given. E.g. '3,2' where 3 is the line number for the antecedent.");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the first proof line referenced by →-intro must be the same as the left side of the implication in the current line.");
             return false;
         }else if(consequent !== dep2prop){ //A->(B) !== B
-            this._addProblemToProblemList(currentLineNumber, "justification values are not correct. The consequent (right-side) of your implication does not correspond to the 2nd justification line number you have given. E.g. '3,2' where 2 is the line number for the consequent.");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the second proof line referenced by →-intro must be the same as the right side of the implication in the current line.");
             return false;
         }else if(dep1rule !== "assume"){ //antecedent is not an assumption
-            this._addProblemToProblemList(currentLineNumber, "the antecedent (left-side) of the implication you are trying to introduce must be an assumption. Ensure that you only use →-intro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
+            this._addProblemToProblemList(currentLineNumber, "The first proof line referenced is not an assumption. It must be an assumption so that it can be discharged by →-intro.");
             return false;
         }else if(dep2rule === "assume"){ //consequent is not an inference rule
             //A->A on its own assumption line is a valid proof, so we use this:
             if(dep1line.getLineNum() !== dep2line.getLineNum()){
-                this._addProblemToProblemList(currentLineNumber, "the consequent (right-side) of the implication you are trying to introduce must be a product of an inference rule. Ensure that you only use →-intro when using an assumption as the antecedent and a product of an inference rule as the consequent.");
+                this._addProblemToProblemList(currentLineNumber, "To use →-intro, the two proof lines referenced should form a sequent. The formula in the second line referenced must depend on the assumption in the first line referenced. The dependencies should not include the assumption in the first proof line referenced. This assumption should be discharged by →-intro.");
                 return false;
             }
         }
@@ -1348,7 +1269,7 @@ class ProofValidator {
             }
         }
         if( !this._areArraysEqual(tempDeps, currentLineDeps) ){ //check if correct dependencies are what the user has
-            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for the →-intro rule: remove the dependencies of the assumption justification from the second justification's dependencies.");
+            this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. The dependencies should consist of any additional assumptions used in deducing the conclusion (in the second proof line referenced) from the assumption (in the first proof line referenced).");
             return false;
         }
 
@@ -1373,10 +1294,10 @@ class ProofValidator {
         let deps = currentLine.getRuleDependencies(); //4
 
         if(deps.length > 1 || deps.length < 1){ //too many or too little rule justifications
-            this._addProblemToProblemList(currentLineNumber, "EFQ can only have 1 rule justification. Rule usage: F | A");
+            this._addProblemToProblemList(currentLineNumber, "⊥-elim has a single premiss; it must reference exactly one proof line.");
             return false;
         }else if(deps[0] >= currentLineNumber){ //attempting to use justification that has not yet been deduced
-            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }
 
@@ -1385,7 +1306,7 @@ class ProofValidator {
         let depProp = depLine.getProposition();
         let depTree = new tombstone.Statement(depProp).tree["tree"][0];
         if(depTree["name"] !== "F"){
-            this._addProblemToProblemList(currentLineNumber, "you have attempted to use EFQ on a non-falsum symbol. On the NatDud application, the falsum system is represented by an 'F' character. Rule usage: F | A");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the proof line referenced by ⊥-elim must be falsum (⊥).");
             return false;
         }
 
@@ -1393,7 +1314,7 @@ class ProofValidator {
         let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
         let currentLineDeps     = new Set(currentLine.getDependencies());
         if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
-            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.");
+            this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. They should be the same as for the premiss.");
             return false;
         }
 
@@ -1412,13 +1333,13 @@ class ProofValidator {
         let tree = new tombstone.Statement(prop).tree["tree"][0];
 
         if(deps.length > 1 || deps.length < 1){ //too many or too little rule justifications
-            this._addProblemToProblemList(currentLineNumber, "¬-Intro can only have 1 rule justification. Rule usage: A->F | ¬A");
+            this._addProblemToProblemList(currentLineNumber, "¬-intro has a single premiss; it must reference exactly one proof line.");
             return false;
         }else if(deps[0] >= currentLineNumber){
-            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }else if(tree["name"] !== "~"){ //first operation is not a negation
-            this._addProblemToProblemList(currentLineNumber, "you have attempted to use ¬-Intro without introducing a negation. Rule usage: A->F | ¬A");
+            this._addProblemToProblemList(currentLineNumber, "To use ¬-intro, the formula in the current line must be a negation.");
             return false;
         }
 
@@ -1433,13 +1354,13 @@ class ProofValidator {
         let depRightProp = treeToFormula(depTree["children"][0] , 0); //"F"
 
         if(depOper !== "->"){ //justification proposition is not an implication
-            this._addProblemToProblemList(currentLineNumber, "¬-Intro can only be used on an implication to falsum. E.g: A->F | ¬A");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the proof line referenced by ¬-intro must be an implication to falsum.");
             return false;
         }else if(depLeftProp !== notProp){ //(A)->F !== A
-            this._addProblemToProblemList(currentLineNumber, "the antecedent (left of the arrow) of the implication used has to be the current line without the negation, i.e: A->F | ¬A , where A has to be the antecedent in the implication");
+            this._addProblemToProblemList(currentLineNumber, "To use ¬-intro, the formula in the current line must be the negation of the left side of the formula in the proof line referenced.");
             return false;
         }else if(depRightProp !== "F"){    //A->(F) !== F
-            this._addProblemToProblemList(currentLineNumber, "invalid use of ¬-Intro: the justification you are attempting to use does not contain Falsum as its consequent (right of the arrow) in the implication. E.g. A->F");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the proof line referenced by ¬-intro must be an implication to falsum.");
             return false;
         }
 
@@ -1447,7 +1368,7 @@ class ProofValidator {
         let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
         let currentLineDeps     = new Set(currentLine.getDependencies());
         if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
-            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.");
+            this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. They should be the same as for the premiss.");
             return false;
         }
 
@@ -1466,13 +1387,13 @@ class ProofValidator {
         let tree = new tombstone.Statement(prop).tree["tree"][0];
 
         if(deps.length > 1 || deps.length < 1){ //too many or too little rule justifications
-            this._addProblemToProblemList(currentLineNumber, "¬-elim can only have 1 rule justification. Rule usage: ¬A | A->F");
+            this._addProblemToProblemList(currentLineNumber, "¬-elim has a single premiss; it must reference exactly one proof line.");
             return false;
         }else if(deps[0] >= currentLineNumber){
-            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }else if(tree["name"] !== "->"){ //first operation is not an implication i.e. A->F
-            this._addProblemToProblemList(currentLineNumber, "you have attempted to use ¬-elim without the current line resulting in an implication (->) operation, e.g: A->F");
+            this._addProblemToProblemList(currentLineNumber, "To use ¬-elim, the formula in the current line must be an implication to falsum.");
             return false;
         }
 
@@ -1490,13 +1411,13 @@ class ProofValidator {
         let depTree = new tombstone.Statement(depProp).tree["tree"][0]; //~A treeObj
         let depOper = depTree["name"]; //"~"
         if(depOper !== "~"){ //operation on justification line is not negation
-            this._addProblemToProblemList(currentLineNumber, "¬-elim must be carried out upon a negated proposition, e.g: ~A in the rule ~A | A->F");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the proof line referenced by ¬-elim must be a negation.");
             return false;
         }
 
         let notDepProp = treeToFormula(depTree["children"][0] , 0); //"A"
         if(notDepProp !== leftProp){ //(A)->F !== "A"
-            this._addProblemToProblemList(currentLineNumber, "the antecedent (left of the arrow) of the implication on this line must be equivilant to the non-negated justification line: ¬A | A->F , where A is the antecedent");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the proof line referenced by ¬-elim must be the negation of the left side of the formula in the current line.");
             return false;
         }
 
@@ -1504,7 +1425,7 @@ class ProofValidator {
         let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
         let currentLineDeps     = new Set(currentLine.getDependencies());
         if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
-            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.");
+            this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. They should be the same as for the premiss.");
             return false;
         }
 
@@ -1522,10 +1443,10 @@ class ProofValidator {
         let prop = currentLine.getProposition(); // B
 
         if(deps.length < 2 || deps.length > 2){//not 2 rule justifications
-            this._addProblemToProblemList(currentLineNumber, "→-elim can only have 2 rule justifications.");
+            this._addProblemToProblemList(currentLineNumber, "→-elim has two premises; it must reference exactly two proof lines.");
             return false;
         }else if(deps[0] >= currentLineNumber || deps[1] >= currentLineNumber){ //references a line after this line in the proof (cannot occur)
-            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }
 
@@ -1535,7 +1456,7 @@ class ProofValidator {
         let dep2op   = dep2tree["name"]; //->
 
         if(dep2op !== "->"){
-            this._addProblemToProblemList(currentLineNumber, "You are attempting to use →-elim on a non-implication operation. Rule usage: A  A->B | B");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the second proof line referenced by →-elim must be an implication.");
             return false;
         }
 
@@ -1545,10 +1466,10 @@ class ProofValidator {
         let dep1prop  = dep1.getProposition();
 
         if(dep1prop !== dep2prop1){ //A !== A
-            this._addProblemToProblemList(currentLineNumber, "your 1st justification does not match the left-side of the implication in your 2nd justification. Rule usage: A  A->B | B");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the first proof line referenced by →-elim must be the same as the left side of the formula in the second line referenced.");
             return false;   
         }else if(prop !== dep2prop2){ //B !== B
-            this._addProblemToProblemList(currentLineNumber, "this line's proposition does not match the right-side of the implication in your 1st justification. Rule usage: A  A->B | B");
+            this._addProblemToProblemList(currentLineNumber, "this line's proposition does not match the right-side of the implication in your 1st justification. Rule usage: A A->B | B");
             return false;
         }
 
@@ -1564,7 +1485,7 @@ class ProofValidator {
         justificationDeps   = new Set(justificationDeps);
         let currentLineDeps = new Set(currentLine.getDependencies());
         if(!this._areSetsEqual(justificationDeps, currentLineDeps)){
-            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.");
+            this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. They should consist of all dependencies of the two premises.");
             return false;
         }
 
@@ -1586,18 +1507,18 @@ class ProofValidator {
         let leftProp  = treeToFormula(tree["children"][1], 0); //A
 
         if(mainOperation !== "||"){ //first operation of proposition is SOMEHOW not ||
-            this._addProblemToProblemList(currentLineNumber, "cannot apply ∨-intro to non-disjunction (non-or) operation. Use '∨' when introducing a disjunction.");
+            this._addProblemToProblemList(currentLineNumber, "To use ∨-intro, the formula in the current line must be a disjunction ('or' operation), such as A ∨ B.");
             return false;
         }else if(deps.length > 1 || deps.length < 1){ //eg orIntro 1,2,3
-            this._addProblemToProblemList(currentLineNumber, "∨-intro rule can only have one rule justification");
+            this._addProblemToProblemList(currentLineNumber, "∨-intro has a single premiss; it must reference exactly one proof line.");
             return false;
         }else if(deps[0] >= currentLineNumber){ //justification values are beyond the current line number in proof
-            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }else{ //operation is disjunction && there is 1 justification value: check if left or right symbol === justification line symbol
             let justificationProp = this.proof[ this._getProofLineIndex(deps[0]) ].getProposition(); //A
             if(leftProp !== justificationProp && rightProp !== justificationProp){
-                this._addProblemToProblemList(currentLineNumber, "you have used ∨-intro incorrectly. ∨-intro introduces a proposition to the right or left of the 'OR' symbol: e.g. A | AvB");
+                this._addProblemToProblemList(currentLineNumber, "To use ∨-intro, the formula in the current line must be a disjunction in which one of the disjuncts is the formula in the proof line referenced.");
                 return false;
             }
         }
@@ -1607,7 +1528,7 @@ class ProofValidator {
         let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
         let currentLineDeps     = new Set(currentLine.getDependencies());
         if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
-            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.");
+            this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. They should be the same as for the premiss.");
             return false;
         }
 
@@ -1625,10 +1546,10 @@ class ProofValidator {
         let prop = currentLine.getProposition(); //"A"
 
         if(deps.length > 1 || deps.length < 1){
-            this._addProblemToProblemList(currentLineNumber, "∧-elim cannot be justified by more or less than one line in the proof. E.g. ∧-elim 4");
+            this._addProblemToProblemList(currentLineNumber, "∧-elim has a single premiss; it must reference exactly one proof line.");
             return false;
         }else if(deps[0] >= currentLine.getLineNum()){
-            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }
 
@@ -1640,10 +1561,10 @@ class ProofValidator {
         let depOperation = depTree["name"]; //"&"
 
         if(depOperation !== "&"){
-            this._addProblemToProblemList(currentLineNumber, "you are attempting to use a line number in your rule justification that does not contain a conjunction (and operation).");
+            this._addProblemToProblemList(currentLineNumber, "The formula in the proof line referenced by ∧-elim must be a conjunction ('and' operation), such as A ∧ B.");
             return false;
         }else if(treeToFormula(depTreeLeftProposition, 0) !== prop && treeToFormula(depTreeRightProposition, 0) !== prop){ //line in proof doesn't match with justification line
-            this._addProblemToProblemList(currentLineNumber, "you have used ∧-elim incorrectly. This line does not match either side of the conjuction (and operation) you have used as a justification.");
+            this._addProblemToProblemList(currentLineNumber, "To use ∧-elim, the formula in the current line must be the same as one of the two sides in the conjunction in the proof line referenced.");
             return false;
         }
 
@@ -1651,7 +1572,7 @@ class ProofValidator {
         let depLineDependencies = new Set(depLine.getDependencies()); //justification deps
         let currentLineDeps     = new Set(currentLine.getDependencies());
         if(!this._areSetsEqual(depLineDependencies, currentLineDeps)){
-            this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.");
+            this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. They should be the same as for the premiss.");
             return false;
         }
 
@@ -1673,13 +1594,13 @@ class ProofValidator {
         let rightProp = treeToFormula(tree["children"][0], 0); //B
 
         if(mainOperation !== "&"){ //first operation of proposition is SOMEHOW not &
-            this._addProblemToProblemList(currentLineNumber, "cannot apply ∧-intro to non-∧ operation. Use '∧' when introducing a conjunction.");
+            this._addProblemToProblemList(currentLineNumber, "To use ∧-intro, the formula in the current line must be a conjunction ('and' operation), such as A ∧ B.");
             return false;
         }else if(deps.length > 2 || deps.length < 2){ //eg &-intro 1,2,3
-            this._addProblemToProblemList(currentLineNumber, "∧-intro rule cannot have more or less than 2 rule justifications");
+            this._addProblemToProblemList(currentLineNumber, "∧-intro has two premises; it must reference exactly two proof lines.");
             return false;
         }else if(deps[0] >= currentLineNumber || deps[1] >= currentLineNumber){ //justification values are beyond the current line number in proof
-            this._addProblemToProblemList(currentLineNumber, "you cannot use a rule justification that is after this line in any proof. Only reference proof lines before the current line number.");
+            this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }else{ //operation is conjuction && there are 2 justification values
             var lineDepsToCheck = []; //array of sets of line dependencies of given justifications
@@ -1688,10 +1609,10 @@ class ProofValidator {
                 let currentJustificationProp = this.proof[ this._getProofLineIndex( currentJustificationLineNumber ) ].getProposition();
 
                 if(currentJustificationLineNumber >= currentLineNumber){
-                    this._addProblemToProblemList(currentLineNumber, "rule justification values are incorrent. Use values that correspond to line numbers in the proof that are being used in the and-Introduction rule");
+                    this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
                     return false;
                 }else if((i===0 && leftProp!==currentJustificationProp) || (i===1 && rightProp!==currentJustificationProp)){//left isn't correct OR right isn't correct
-                    this._addProblemToProblemList(currentLineNumber, "justification values are not correct. Perhaps check if the justification ordering is correct. E.g. 2,1 to 1,2. This is to ensure consistency for introducing both the left and right side of the conjunction operation.");
+                    this._addProblemToProblemList(currentLineNumber, "The formula in the first proof line referenced by ∧-intro must be the same as the left side (first conjunct) of the formula in the current line. The formula in the second proof line referenced by ∧-intro must be the same as the right side (second conjunct) of the formula in the current line.");
                     return false;
                 }
 
@@ -1705,7 +1626,7 @@ class ProofValidator {
             lineDepsToCheck = new Set(lineDepsToCheck); //justification deps
             let currentLineDeps = new Set(currentLine.getDependencies());
             if(!this._areSetsEqual(lineDepsToCheck, currentLineDeps)){
-                this._addProblemToProblemList(currentLineNumber, "dependencies are incorrect - to determine the dependencies for a non-sequent rule: add together the set of dependencies from each justification line.\nE.g. (7)...andIntro 5,6\nLine 5 dependencies: 1,3\nLine 6 dependencies: 2,4\nLine 7 dependencies: 1,2,3,4");
+                this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. They should consist of all dependencies of the two premises.");
                 return false;
             }
 
@@ -1778,6 +1699,11 @@ module.exports = ProofValidator;
 
 },{}],5:[function(require,module,exports){
 //DEFAULT VALUE OF operandNo SHOULD ALWAYS BE 0 (ZERO)
+/**
+ *	A function to transform Tombstone's parse tree object to CS103 WFF
+ *	@param {ParseTree} formulaTree - parse tree object
+ *	@param {Number}	   operandNo   - number to keep track of useless parentheses
+ */
 function treeToFormula(formulaTree, operandNo){
 	//base cases
 	if(!("children" in formulaTree)) //if a literal
