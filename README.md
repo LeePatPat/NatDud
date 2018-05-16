@@ -31,7 +31,7 @@ Check the /QUnit directory for all unit tests.
 
 Dr David Bevan at the University of Strathclyde for his contributions to the theory behind the application.
 
-Joseph Kato (https://github.com/jdkato) for his developments on the Tombstone.js natural deduction library.
+Joseph Kato (https://github.com/jdkato) for his developments on the Tombstone.js propositional logic library.
 
 ## License
 
