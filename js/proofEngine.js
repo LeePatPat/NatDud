@@ -212,24 +212,16 @@ $(document).ready(function(){
 
 	//row button actions (delete row, add above, add below)
 	$("#proof-area").on("click", "#proof-table .btnDelRow", function(){
-		if( $("#proof-table > tr").length > 1 ){
-			$(this).closest("tr").remove(); //remove the closest row to the button
-		}
-		updateRowNumbers();
+		removeRow($(this));
+		/////
 	});
 	$("#proof-area").on("click", "#proof-table .btnAddRowAbove", function(){
-		var newRow = $("<tr>");
-		var cols = getCleanRow();
-		newRow.append(cols);
-		newRow.insertBefore($(this).parents().closest("tr")); //insert fresh row before current row
-		updateRowNumbers();
+		addRowAboveCurrentRow($(this));
+		///
 	});
 	$("#proof-area").on("click", "#proof-table .btnAddRowBelow", function(){
-		var newRow = $("<tr>");
-		var cols = getCleanRow();
-		newRow.append(cols);
-		newRow.insertAfter($(this).parent().closest("tr")); //insert fresh row after current row
-		updateRowNumbers();
+		addRowBelowCurrentRow($(this));
+		///
 	});
 	$("#proof-area").on("click", "#proof-table .btnCheckRow", function(){
 		var $row     	= $(this).parent().parent();
@@ -367,9 +359,148 @@ $(document).ready(function(){
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
+	 * Removes the whole row where the button was clicked
+	 * @param {Object.button} deleteRowButtonObject - delete row button that was clicked
+	 */
+	function removeRow(deleteRowButtonObject){
+		let rowIndex = $(deleteRowButtonObject).parents().closest("tr").index(); //row deleted
+
+		//update line deps and rule references
+		$("#proof-table tr").each(function(i, row){
+			let $row = $(row);
+			let lineDeps = $row.find('input[name*="dependencyInput"]')[0].value.replace(/\s/g,''); //line deps of current line as string
+			let ruleRefs = $row.find('input[name*="justificationInput"]')[0].value.replace(/\s/g,''); //rule references of current line as string
+
+			if(lineDeps !== ""){
+				let tempLineDeps = lineDeps.split(",").map(Number);
+				for(var counter=0; counter<tempLineDeps.length; counter++){
+					let currentValue = tempLineDeps[counter];
+					if(tempLineDeps[counter] === rowIndex+1){ //remove value that refers to removed row
+						tempLineDeps.splice(counter, 1);
+					}else if(tempLineDeps[counter] > rowIndex+1){ //current value refers to before removed row
+						tempLineDeps[counter]--;
+					}
+				}
+				$row.find('input[name*="dependencyInput"]')[0].value = tempLineDeps.join(",");
+			}
+
+			if(ruleRefs !== ""){
+				let tempRuleRefs = ruleRefs.split(",").map(Number);
+				for(var counter=0; counter<tempRuleRefs.length; counter++){
+					let currentValue = tempRuleRefs[counter];
+					if(tempRuleRefs[counter] === rowIndex+1){ //remove value that refers to removed row
+						tempRuleRefs.splice(counter, 1);
+					}else if(tempRuleRefs[counter] > rowIndex+1){ //current line dep refers to a line after line added
+						tempRuleRefs[counter]--;
+					}
+				}
+				$row.find('input[name*="justificationInput"]')[0].value = tempRuleRefs.join(",");
+			}
+		});
+
+		if( $("#proof-table > tr").length > 1 )
+			$(deleteRowButtonObject).closest("tr").remove(); //remove the closest row to the button
+		updateRowNumbers();
+	}
+
+	/**
+	 *	Add new clean row to the proof table above the clicked button, while also updating the line dep and rule reference values
+	 *	@param {Object.button} addAboveButtonObject - the button that was clicked
+	 */
+	function addRowAboveCurrentRow(addAboveButtonObject){
+		var newRow = $("<tr>");
+		var cols = getCleanRow();
+		newRow.append(cols);
+
+		let rowIndex = $(addAboveButtonObject).parents().closest("tr").index();
+		console.log("Adding row above " + rowIndex);
+		
+		//update line deps and rule references
+		$("#proof-table tr").each(function(i, row){
+			let $row = $(row);
+			let lineDeps = $row.find('input[name*="dependencyInput"]')[0].value.replace(/\s/g,''); //line deps of current line as string
+			let ruleRefs = $row.find('input[name*="justificationInput"]')[0].value.replace(/\s/g,'');; //rule references of current line as string
+
+			if(lineDeps === "")
+				return true; //continue
+			else{
+				let tempLineDeps = lineDeps.split(",").map(Number);
+				for(var counter=0; counter<tempLineDeps.length; counter++){
+					let currentValue = tempLineDeps[counter];
+					if(tempLineDeps[counter] >= rowIndex+1) //current line dep refers to a line after line added
+						tempLineDeps[counter]++
+				}
+				$row.find('input[name*="dependencyInput"]')[0].value = tempLineDeps.join(",");
+			}
+
+			if(ruleRefs === "")
+				return true; //continue
+			else{
+				let tempRuleRefs = ruleRefs.split(",").map(Number);
+				for(var counter=0; counter<tempRuleRefs.length; counter++){
+					let currentValue = tempRuleRefs[counter];
+					if(tempRuleRefs[counter] >= rowIndex+1)
+						tempRuleRefs[counter]++;
+				}
+				$row.find('input[name*="justificationInput"]')[0].value = tempRuleRefs.join(",");
+			}
+		});
+
+		newRow.insertBefore($(addAboveButtonObject).parents().closest("tr")); //insert fresh row before current row
+		updateRowNumbers();
+	}
+
+	/**
+	 *	Add new clean row to the proof table below the clicked button, while also updating the line dep and rule reference values
+	 *	@param {Object.button} addBelowButtonObject - the button that was clicked
+	 */
+	function addRowBelowCurrentRow(addBelowButtonObject){
+		var newRow = $("<tr>");
+		var cols = getCleanRow();
+		newRow.append(cols);
+
+		let rowIndex = $(addBelowButtonObject).parents().closest("tr").index();
+		console.log("Adding row below " + rowIndex);
+
+		//update line deps and rule references
+		$("#proof-table tr").each(function(i, row){
+			let $row = $(row);
+			let lineDeps = $row.find('input[name*="dependencyInput"]')[0].value.replace(/\s/g,''); //line deps of current line as string
+			let ruleRefs = $row.find('input[name*="justificationInput"]')[0].value.replace(/\s/g,'');; //rule references of current line as string
+
+			if(lineDeps !== ""){
+				let tempLineDeps = lineDeps.split(",").map(Number);
+				for(var counter=0; counter<tempLineDeps.length; counter++){
+					let currentValue = tempLineDeps[counter];
+					if(tempLineDeps[counter] > rowIndex+1){ //current line dep refers to a line after line added
+						tempLineDeps[counter]++
+					}
+				}
+				$row.find('input[name*="dependencyInput"]')[0].value = tempLineDeps.join(",");
+			}
+
+			if(ruleRefs !== ""){
+				let tempRuleRefs = ruleRefs.split(",").map(Number);
+				console.log(tempRuleRefs);
+				for(var counter=0; counter<tempRuleRefs.length; counter++){
+					let currentValue = tempRuleRefs[counter];
+					if(tempRuleRefs[counter] > rowIndex+1)
+						tempRuleRefs[counter]++;
+				}
+				$row.find('input[name*="justificationInput"]')[0].value = tempRuleRefs.join(",");
+			}
+		});
+
+		newRow.insertAfter($(addBelowButtonObject).parent().closest("tr")); //insert fresh row after current row
+		updateRowNumbers(); //updateRuleLineDeps(rowIndex);
+	}
+
+	/**
 	 *	A function that updates the line numbers for each line after a row is added or deleted
 	 */
 	function updateRowNumbers(){
+		var movedRow;
+
 		//for each row in proof-table
 		$("#proof-table tr").each(function(i, row){
 			let $row = $(row),
