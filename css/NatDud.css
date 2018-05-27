@@ -66,6 +66,10 @@ td{
 tr{
 	padding-top: 1%;
 }
+th{
+	font-size: 12px;
+	text-align: center;
+}
 @font-face {
 	font-family: 'Simplifica';
 	font-style: normal;

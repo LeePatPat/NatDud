@@ -92,9 +92,19 @@ $(document).ready(function(){
 				var $proofTable = $('<table id="proof-table" style="border: 1px"></table>');
 				$("#proof-area").append($proofTable);
 
-				//add final row of proof to proof-table
+				//add proof table headers
 				var newRow = $("<tr>");
-				var cols = "";
+				var cols   = "<th>Assumptions</th>";
+					cols  += "<th></th>";
+					cols  += "<th>Formula</th>";
+					cols  += "<th>Justification</th>";
+				newRow.append(cols);
+				$proofTable.append(newRow);
+
+				
+				//add final row of proof to proof-table
+				newRow = $("<tr>");
+				cols = "";
 				cols += '<td style="width: 10%">		 <input name="dependencyInput" class="form-control input-sm" title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
 				cols += '<td style="width: 3%">		 	 <p style="margin: 0" name="lineNum">(1)</p> </td>';
 				cols += '<td style="width: 40%">		 <input name="proofLineInput" class="form-control input-sm" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
@@ -157,13 +167,15 @@ $(document).ready(function(){
 			invalidLineNum = -1,
 			errorString = "";
 		$("#proof-table tr").each(function(i, row){
+			if(i===0) return true; //skip proof table headers
+
 			var $row   = $(row),
 				$deps  = $row.find('input[name*="dependencyInput"]').val().replace(/\s/g,''),
 				$line  = $row.find('input[name*="proofLineInput"]').val().toUpperCase().replace(/\s/g,''),
 				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().replace(/\s/g,''),
 				$just  = $row.find('input[name*="justificationInput"]').val().toUpperCase().replace(/\s/g,'');
 
-			if($deps==="" && $line==="" && $rule==="null" && $just===""){
+			if($deps==="" && $line==="" && $rule==="null" && $just===""){ //completely blank line
 				proofData.push(new ProofLine([], counter++, "", "", []));
 				return true;
 			}
@@ -176,14 +188,14 @@ $(document).ready(function(){
 				currentTombstoneString = toTombstoneString(currentTombstoneObject.statement);
 			}catch(e){
 				valid = false;
-				invalidLineNum = i+1;
+				invalidLineNum = i;
 				errorString = "[Line " +invalidLineNum+"]: Formula syntax error.";
 				return false; //break
 			}
 
 			if(currentTombstoneString !== to103wff(currentTombstoneString) ){
 				valid = false;
-				invalidLineNum = i+1;
+				invalidLineNum = i;
 				errorString = "[Line " +invalidLineNum+"]: Formula is not a wff. Perhaps you meant: " + toNatdudString(to103wff(currentTombstoneString));
 				return false; //break
 			}
@@ -229,7 +241,7 @@ $(document).ready(function(){
 	});
 	$("#proof-area").on("click", "#proof-table .btnCheckRow", function(){
 		var $row     	 = $(this).parent().parent();
-		var currLineNum  = $row.index()+1;
+		var currLineNum  = $row.index();
 		var currLine 	 = $row.find("input[name='proofLineInput']").val().replace(/\s/g,'').toUpperCase();
 		var currLineDeps = $row.find("input[name='dependencyInput']").val().replace(/\s/g,'');
 		var currRuleRefs = $row.find("input[name='justificationInput']").val().replace(/\s/g,'');
@@ -299,8 +311,9 @@ $(document).ready(function(){
 			actualString = "";
 		//loop through all table rows up until the row that wants to be checked
 		$("#proof-table tr").each(function(i, row){	
-			if(i+1 === currLineNum) return false; //we've reached the current line, break
-			if( $.inArray( (i+1).toString(), currJust ) === -1 ) return true; //skip to next line if this line is not in the justifications
+			if(i===0) return true; //skip proof table headers
+			else if(i === currLineNum) return false; //we've reached the current line, break
+			else if( $.inArray( i.toString(), currJust ) === -1 ) return true; //skip to next line if this line is not in the justifications
 
 			let $row   = $(row),
 				$deps  = $row.find('input[name*="dependencyInput"]').val().replace(/\s/g,''),
@@ -313,7 +326,7 @@ $(document).ready(function(){
 			let currentTombstoneString = toTombstoneString(currentTombstoneObject.statement);
 			if(currentTombstoneString !== to103wff(currentTombstoneString) ){
 				valid = false;
-				invalidLineNum = i+1;
+				invalidLineNum = i;
 				actualString = to103wff(currentTombstoneString);
 				return false; //break
 			}
@@ -327,7 +340,7 @@ $(document).ready(function(){
 			$line = toTombstoneString($line);
 			$just = clearEmptyStringsFromArray($just.split(','));
 
-			partialProofData.push(new ProofLine($deps, (i+1).toString(), toTombstoneString($line), $rule, $just));
+			partialProofData.push(new ProofLine($deps, i.toString(), toTombstoneString($line), $rule, $just));
 		});
 
 		if(!valid){
@@ -380,6 +393,7 @@ $(document).ready(function(){
 
 		//update line deps and rule references
 		$("#proof-table tr").each(function(i, row){
+			if(i===0) return true; //skip the table headers
 			let $row = $(row);
 			let lineDeps = $row.find('input[name*="dependencyInput"]')[0].value.replace(/\s/g,''); //line deps of current line as string
 			let ruleRefs = $row.find('input[name*="justificationInput"]')[0].value.replace(/\s/g,''); //rule references of current line as string
@@ -388,10 +402,10 @@ $(document).ready(function(){
 				let tempLineDeps = lineDeps.split(",").map(Number);
 				for(var counter=0; counter<tempLineDeps.length; counter++){
 					let currentValue = tempLineDeps[counter];
-					if(tempLineDeps[counter] === rowIndex+1){ //remove value that refers to removed row
+					if(tempLineDeps[counter] === rowIndex){ //remove value that refers to removed row
 						tempLineDeps.splice(counter, 1);
 						counter--; //we removed the current element from the array, so we have to accomodate for the loop's incrementation
-					}else if(tempLineDeps[counter] > rowIndex+1){ //current value refers to before removed row
+					}else if(tempLineDeps[counter] > rowIndex){ //current value refers to before removed row
 						tempLineDeps[counter]--;
 					}
 				}
@@ -402,10 +416,10 @@ $(document).ready(function(){
 				let tempRuleRefs = ruleRefs.split(",").map(Number);
 				for(var counter=0; counter<tempRuleRefs.length; counter++){
 					let currentValue = tempRuleRefs[counter];
-					if(tempRuleRefs[counter] === rowIndex+1){ //remove value that refers to removed row
+					if(tempRuleRefs[counter] === rowIndex){ //remove value that refers to removed row
 						tempRuleRefs.splice(counter, 1);
 						counter--;
-					}else if(tempRuleRefs[counter] > rowIndex+1){ //current line dep refers to a line after line added
+					}else if(tempRuleRefs[counter] > rowIndex){ //current line dep refers to a line after line added
 						tempRuleRefs[counter]--;
 					}
 				}
@@ -415,7 +429,7 @@ $(document).ready(function(){
 
 		if( $("#proof-table > tr").length > 1 )
 			$(deleteRowButtonObject).closest("tr").remove(); //remove the closest row to the button
-		updateRowNumbers();
+		updateLineNumbers();
 	}
 
 	/**
@@ -430,39 +444,43 @@ $(document).ready(function(){
 		let rowIndex = $(addAboveButtonObject).parents().closest("tr").index();
 		console.log("Adding row above " + rowIndex);
 		
+		var checkLast;
+
 		//update line deps and rule references
 		$("#proof-table tr").each(function(i, row){
+			if(i===0) return true; //skip the table headers
 			let $row = $(row);
 			let lineDeps = $row.find('input[name*="dependencyInput"]')[0].value.replace(/\s/g,''); //line deps of current line as string
 			let ruleRefs = $row.find('input[name*="justificationInput"]')[0].value.replace(/\s/g,'');; //rule references of current line as string
 
-			if(lineDeps === "")
-				return true; //continue
-			else{
+			console.log(ruleRefs);
+
+			if(lineDeps !== ""){
 				let tempLineDeps = lineDeps.split(",").map(Number);
 				for(var counter=0; counter<tempLineDeps.length; counter++){
 					let currentValue = tempLineDeps[counter];
-					if(tempLineDeps[counter] >= rowIndex+1) //current line dep refers to a line after line added
+					if(tempLineDeps[counter] >= rowIndex) //current line dep refers to a line after line added
 						tempLineDeps[counter]++
 				}
 				$row.find('input[name*="dependencyInput"]')[0].value = tempLineDeps.join(",");
 			}
 
-			if(ruleRefs === "")
-				return true; //continue
-			else{
+			if(ruleRefs !== ""){
+				console.log("we get here");
 				let tempRuleRefs = ruleRefs.split(",").map(Number);
 				for(var counter=0; counter<tempRuleRefs.length; counter++){
 					let currentValue = tempRuleRefs[counter];
-					if(tempRuleRefs[counter] >= rowIndex+1)
+					if(tempRuleRefs[counter] >= rowIndex)
 						tempRuleRefs[counter]++;
 				}
 				$row.find('input[name*="justificationInput"]')[0].value = tempRuleRefs.join(",");
 			}
+
+
 		});
 
 		newRow.insertBefore($(addAboveButtonObject).parents().closest("tr")); //insert fresh row before current row
-		updateRowNumbers();
+		updateLineNumbers();
 	}
 
 	/**
@@ -479,6 +497,7 @@ $(document).ready(function(){
 
 		//update line deps and rule references
 		$("#proof-table tr").each(function(i, row){
+			if(i===0) return true; //skip the table headers
 			let $row = $(row);
 			let lineDeps = $row.find('input[name*="dependencyInput"]')[0].value.replace(/\s/g,''); //line deps of current line as string
 			let ruleRefs = $row.find('input[name*="justificationInput"]')[0].value.replace(/\s/g,'');; //rule references of current line as string
@@ -487,9 +506,8 @@ $(document).ready(function(){
 				let tempLineDeps = lineDeps.split(",").map(Number);
 				for(var counter=0; counter<tempLineDeps.length; counter++){
 					let currentValue = tempLineDeps[counter];
-					if(tempLineDeps[counter] > rowIndex+1){ //current line dep refers to a line after line added
+					if(tempLineDeps[counter] > rowIndex) //current line dep refers to a line after line added
 						tempLineDeps[counter]++
-					}
 				}
 				$row.find('input[name*="dependencyInput"]')[0].value = tempLineDeps.join(",");
 			}
@@ -499,7 +517,7 @@ $(document).ready(function(){
 				console.log(tempRuleRefs);
 				for(var counter=0; counter<tempRuleRefs.length; counter++){
 					let currentValue = tempRuleRefs[counter];
-					if(tempRuleRefs[counter] > rowIndex+1)
+					if(tempRuleRefs[counter] > rowIndex)
 						tempRuleRefs[counter]++;
 				}
 				$row.find('input[name*="justificationInput"]')[0].value = tempRuleRefs.join(",");
@@ -507,22 +525,20 @@ $(document).ready(function(){
 		});
 
 		newRow.insertAfter($(addBelowButtonObject).parent().closest("tr")); //insert fresh row after current row
-		updateRowNumbers(); //updateRuleLineDeps(rowIndex);
+		updateLineNumbers(); //updateRuleLineDeps(rowIndex);
 	}
 
 	/**
 	 *	A function that updates the line numbers for each line after a row is added or deleted
 	 */
-	function updateRowNumbers(){
-		var movedRow;
-
+	function updateLineNumbers(){
 		//for each row in proof-table
 		$("#proof-table tr").each(function(i, row){
+			if(i===0) return true; //skip proof table headers
 			let $row = $(row),
-				$lineNum = $row.find('p[name*="lineNum"]'),
-				newLineNum = i+1;
+				$lineNum = $row.find('p[name*="lineNum"]');
 
-			$lineNum.text( "(" + newLineNum + ")" );
+			$lineNum.text( "(" + i + ")" );
 		});
 	}
 
