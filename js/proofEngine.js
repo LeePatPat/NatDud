@@ -164,6 +164,11 @@ $(document).ready(function(){
 				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().replace(/\s/g,''),
 				$just  = $row.find('input[name*="justificationInput"]').val().toUpperCase().replace(/\s/g,'');
 
+			if($deps==="" && $line==="" && $rule==="null" && $just===""){
+				proofData.push(new ProofLine([], counter++, "", "", []));
+				return true;
+			}
+
 			//check if current line is wff
 			let currentTombstoneObject = null;
 			let currentTombstoneString = null;
@@ -224,15 +229,25 @@ $(document).ready(function(){
 		///
 	});
 	$("#proof-area").on("click", "#proof-table .btnCheckRow", function(){
-		var $row     	= $(this).parent().parent();
-		var currLineNum = $row.index()+1;
-		var currLine 	= $row.find("input[name='proofLineInput']").val().replace(/\s/g,'').toUpperCase();
+		var $row     	 = $(this).parent().parent();
+		var currLineNum  = $row.index()+1;
+		var currLine 	 = $row.find("input[name='proofLineInput']").val().replace(/\s/g,'').toUpperCase();
+		var currLineDeps = $row.find("input[name='dependencyInput']").val().replace(/\s/g,'');
+		var currRuleRefs = $row.find("input[name='justificationInput']").val().replace(/\s/g,'');
+		var currRule 	 = $row.find("select[name='ruleInput']").find(":selected").val().toLowerCase().replace(/\s/g,'');
 
+		console.log(currRule);
 
 		//check if tombstone object is sensible
 		let formulaTombstoneObject = null;
 		let formulaTree = null;
 		let partialProofData = []; //array of ProofLine objects
+
+		if(currLine==="" && currLineDeps==="" && currRuleRefs==="" && currRule==="null"){ //accept blank lines
+			displayValidFeedback("[Line " + currLineNum + "]: Completely blank lines are valid.");
+			return true;
+		}
+
 		try{
 			formulaTombstoneObject = new tombstone.Statement( toTombstoneString(currLine) );
 			formulaTree = formulaTombstoneObject.tree["tree"][0];
@@ -240,7 +255,6 @@ $(document).ready(function(){
 			displayFeedback("[Line " + currLineNum + "]: Formula syntax error.");
 			return false;
 		}
-
 
 
 		//check if current line is a WFF
@@ -377,6 +391,7 @@ $(document).ready(function(){
 					let currentValue = tempLineDeps[counter];
 					if(tempLineDeps[counter] === rowIndex+1){ //remove value that refers to removed row
 						tempLineDeps.splice(counter, 1);
+						counter--; //we removed the current element from the array, so we have to accomodate for the loop's incrementation
 					}else if(tempLineDeps[counter] > rowIndex+1){ //current value refers to before removed row
 						tempLineDeps[counter]--;
 					}
@@ -390,6 +405,7 @@ $(document).ready(function(){
 					let currentValue = tempRuleRefs[counter];
 					if(tempRuleRefs[counter] === rowIndex+1){ //remove value that refers to removed row
 						tempRuleRefs.splice(counter, 1);
+						counter--;
 					}else if(tempRuleRefs[counter] > rowIndex+1){ //current line dep refers to a line after line added
 						tempRuleRefs[counter]--;
 					}
@@ -956,12 +972,11 @@ class ProofValidator {
                 var currentRule = currentLine.getRule().toLowerCase();
                 var currentRuleJustification = currentLine.getRuleDependencies();
 
-                if(this.fullValidation===true && i+1 === this.proof.length && currentLineDeps.length > 0){ //fullValidation && last line AND there are still line dependencies
+                if(i+1 === this.proof.length && currentLineDeps.length > 0){ //fullValidation && last line AND there are still line dependencies
                     this._addProblemToProblemList(currentLineNumber, "The last line in the proof should not have line dependencies. All assumptions should be discharged using inference rules by the final line of the proof.");
                     return false;
-                }else if(currentLineProposition.replace(/ /g,'') === ""){
-                    this._addProblemToProblemList(currentLineNumber, "proof lines cannot be empty.");
-                    return false;
+                }else if(this._isLineBlank(currentLine)){
+                    continue; //ignore completely blank lines
                 }
 
                 switch(currentRule){
@@ -1025,9 +1040,9 @@ class ProofValidator {
             var currentRule = currentLine.getRule().toLowerCase();
             var currentRuleJustification = currentLine.getRuleDependencies();
 
-            if(currentLineProposition.replace(/ /g,'') === ""){
-                this._addProblemToProblemList(currentLineNumber, "proof lines cannot be empty.");
-                return false;
+            if(this._isLineBlank(currentLine)){
+                this._addProblemToProblemList(currentLineNumber, "Completely blank rows are acceptable.");
+                return true;
             }
 
             switch(currentRule){
@@ -1819,6 +1834,23 @@ class ProofValidator {
      */
     _addProblemToProblemList(lineNumber, message){
         this.problemList.push("[Line "+ lineNumber +"]: " + message)
+    }
+
+    /**
+     * psuedo-private function to check if a given ProofLine object is blank
+     * @param {ProofLine} line - ProofLine object to be checked for being blank
+     * @returns {boolean} isBlank - boolean to represent whether or not the given line is blank
+     */
+    _isLineBlank(line){
+        var currentLineDeps          = line.getDependencies(); //array
+        var currentLineProposition   = line.getProposition().replace(/ /g,''); //string
+        var currentRule              = line.getRule().toLowerCase().replace(/ /g,''); //string
+        var currentRuleJustification = line.getRuleDependencies(); //array
+
+        return (currentLineDeps.length === 0 &&
+                currentRuleJustification.length === 0 &&
+                currentRule === "" &&
+                currentLineProposition === ""); //true if line is completely empty
     }
 }
 

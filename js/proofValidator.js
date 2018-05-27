@@ -63,12 +63,11 @@ class ProofValidator {
                 var currentRule = currentLine.getRule().toLowerCase();
                 var currentRuleJustification = currentLine.getRuleDependencies();
 
-                if(this.fullValidation===true && i+1 === this.proof.length && currentLineDeps.length > 0){ //fullValidation && last line AND there are still line dependencies
+                if(i+1 === this.proof.length && currentLineDeps.length > 0){ //fullValidation && last line AND there are still line dependencies
                     this._addProblemToProblemList(currentLineNumber, "The last line in the proof should not have line dependencies. All assumptions should be discharged using inference rules by the final line of the proof.");
                     return false;
-                }else if(currentLineProposition.replace(/ /g,'') === ""){
-                    this._addProblemToProblemList(currentLineNumber, "proof lines cannot be empty.");
-                    return false;
+                }else if(this._isLineBlank(currentLine)){
+                    continue; //ignore completely blank lines
                 }
 
                 switch(currentRule){
@@ -132,9 +131,9 @@ class ProofValidator {
             var currentRule = currentLine.getRule().toLowerCase();
             var currentRuleJustification = currentLine.getRuleDependencies();
 
-            if(currentLineProposition.replace(/ /g,'') === ""){
-                this._addProblemToProblemList(currentLineNumber, "proof lines cannot be empty.");
-                return false;
+            if(this._isLineBlank(currentLine)){
+                this._addProblemToProblemList(currentLineNumber, "Completely blank rows are acceptable.");
+                return true;
             }
 
             switch(currentRule){
@@ -926,6 +925,23 @@ class ProofValidator {
      */
     _addProblemToProblemList(lineNumber, message){
         this.problemList.push("[Line "+ lineNumber +"]: " + message)
+    }
+
+    /**
+     * psuedo-private function to check if a given ProofLine object is blank
+     * @param {ProofLine} line - ProofLine object to be checked for being blank
+     * @returns {boolean} isBlank - boolean to represent whether or not the given line is blank
+     */
+    _isLineBlank(line){
+        var currentLineDeps          = line.getDependencies(); //array
+        var currentLineProposition   = line.getProposition().replace(/ /g,''); //string
+        var currentRule              = line.getRule().toLowerCase().replace(/ /g,''); //string
+        var currentRuleJustification = line.getRuleDependencies(); //array
+
+        return (currentLineDeps.length === 0 &&
+                currentRuleJustification.length === 0 &&
+                currentRule === "" &&
+                currentLineProposition === ""); //true if line is completely empty
     }
 }
 
