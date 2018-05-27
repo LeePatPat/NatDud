@@ -106,7 +106,7 @@ $(document).ready(function(){
 				//add final row of proof to proof-table
 				newRow = $("<tr>");
 				cols = "";
-				cols += '<td style="width: 10%">		 <input name="dependencyInput" class="form-control input-sm" title="Cannot edit: the final line in the proof must have no line dependencies" value=" " disabled></td>';
+				cols += '<td style="width: 10%">		 <input name="dependencyInput" class="form-control input-sm" title="Dependencies: e.g. 1,2"></td>';
 				cols += '<td style="width: 3%">		 	 <p style="margin: 0" name="lineNum">(1)</p> </td>';
 				cols += '<td style="width: 40%">		 <input name="proofLineInput" class="form-control input-sm" title="Cannot edit: the final line in the proof must be the original proposition" value="'+formulaString+'" disabled></td>';
 				cols += '<td>							 <select name="ruleInput" class="selectpicker form-control input-sm"><option value="null" style="display: none"></option><option value="assume">assume</option><option value="andIntro">∧-intro</option><option value="andElim">∧-elim</option><option value="impIntro">→-intro</option><option value="impElim">→-elim</option><option value="orIntro">∨-intro</option><option value="orElim">∨-elim</option><option value="notIntro">¬-intro</option><option value="notElim">¬-elim</option><option value="raa">RAA</option></select></td>';//<option value="efq">⊥-elim</option>
@@ -295,7 +295,7 @@ $(document).ready(function(){
 		}else if(isOneJustificationRule(currRule) && currJust.length !== 1){ //if this is a one justification rule AND rule is not using exactly 1 justification
 			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY one line reference.");
 			return false;
-		}else if(isTwoJustificationRule(currRule) && currJust.length !== 2){ //if this is a two justificationrule  AND rule is not using exactly 2 justifications
+		}else if(isTwoJustificationRule(currRule) && currJust.length !== 2){ //if this is a two justification rule AND rule is not using exactly 2 justifications
 			displayFeedback("[Line " + currLineNum + "]: The rule you are attempting to use requires EXACTLY two line references.");
 			return false;
 		}else if(currRule.toLowerCase() === "orelim" && currJust.length !== 5){ //if current rule is orelim AND rule does not use 5 justifications
@@ -989,7 +989,7 @@ class ProofValidator {
                 var currentRuleJustification = currentLine.getRuleDependencies();
 
                 if(i+1 === this.proof.length && currentLineDeps.length > 0){ //fullValidation && last line AND there are still line dependencies
-                    this._addProblemToProblemList(currentLineNumber, "The last line in the proof should not have line dependencies. All assumptions should be discharged using inference rules by the final line of the proof.");
+                    this._addProblemToProblemList(currentLineNumber, "All the proof steps are valid, but some assumptions have not been discharged, so the theorem has not been proved.");
                     return false;
                 }else if(this._isLineBlank(currentLine)){
                     continue; //ignore completely blank lines
