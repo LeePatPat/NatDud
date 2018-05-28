@@ -12,50 +12,59 @@ $(document).ready(function(){
 	var formulaString 	= "";
 	var currentLine 	= 1; //current line of the proof
 	var message 		= ""; //error message to be displayed
-	var $lastFocus 		= null; //keeps last input 
+	var $lastFocus 		= null; //keeps last input object
+	var caretPosition   = 0; //keeps track of the cursor position
 	
 	//logic button actions
 	$("#logic-imply").click(function(e){
 		if(!formulaValid){
-			$("#formula").val($("#formula").val() + "→");
-			$("#formula").focus();
+			caretPosition = $("#formula").prop("selectionStart");
+			$("#formula").val( addSymbolToStringAtPosition( $("#formula").val(), caretPosition++, "→" ) );
+			setCaretToPos($("#formula")[0], caretPosition);
 		}else{
 			if($lastFocus != null){
-				$lastFocus.val( $lastFocus.val() + "→" );
-				$lastFocus.focus();
+				caretPosition = $lastFocus.prop("selectionStart");
+				$lastFocus.val( addSymbolToStringAtPosition( $lastFocus.val(), caretPosition++, "→" ) );
+				setCaretToPos($lastFocus[0], caretPosition);
 			}
 		}
 	});
 	$("#logic-and").click(function(){
 		if(!formulaValid){
-			$("#formula").val($("#formula").val() + "∧");
-			$("#formula").focus();
+			caretPosition = $("#formula").prop("selectionStart");
+			$("#formula").val( addSymbolToStringAtPosition( $("#formula").val(), caretPosition++, "∧" ) );
+			setCaretToPos($("#formula")[0], caretPosition);
 		}else{
 			if($lastFocus != null){
-				$lastFocus.val( $lastFocus.val() + "∧" );
-				$lastFocus.focus();
+				caretPosition = $lastFocus.prop("selectionStart");
+				$lastFocus.val( addSymbolToStringAtPosition( $lastFocus.val(), caretPosition++, "∧" ) );
+				setCaretToPos($lastFocus[0], caretPosition);
 			}
 		}
 	});
 	$("#logic-or").click(function(){
 		if(!formulaValid){
-			$("#formula").val($("#formula").val() + "∨");
-			$("#formula").focus();
+			caretPosition = $("#formula").prop("selectionStart");
+			$("#formula").val( addSymbolToStringAtPosition( $("#formula").val(), caretPosition++, "∨" ) );
+			setCaretToPos($("#formula")[0], caretPosition);
 		}else{
 			if($lastFocus != null){
-				$lastFocus.val( $lastFocus.val() + "∨" );
-				$lastFocus.focus();
+				caretPosition = $lastFocus.prop("selectionStart");
+				$lastFocus.val( addSymbolToStringAtPosition( $lastFocus.val(), caretPosition++, "∨" ) );
+				setCaretToPos($lastFocus[0], caretPosition);
 			}
 		}
 	});
 	$("#logic-not").click(function(){
 		if(!formulaValid){
-			$("#formula").val($("#formula").val() + "¬");
-			$("#formula").focus();
+			caretPosition = $("#formula").prop("selectionStart");
+			$("#formula").val( addSymbolToStringAtPosition( $("#formula").val(), caretPosition++, "¬" ) );
+			setCaretToPos($("#formula")[0], caretPosition);
 		}else{
 			if($lastFocus != null){
-				$lastFocus.val( $lastFocus.val() + "¬" );
-				$lastFocus.focus();
+				caretPosition = $lastFocus.prop("selectionStart");
+				$lastFocus.val( addSymbolToStringAtPosition( $lastFocus.val(), caretPosition++, "¬" ) );
+				setCaretToPos($lastFocus[0], caretPosition);
 			}
 		}
 	});
@@ -385,6 +394,27 @@ $(document).ready(function(){
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
+	 *	sets the cursor position in a given input object
+	 *	@param {$.inputObject} input - input object to set the cursor position on
+	 *	@param {number} pos - position to set the cursor to
+	 */
+	function setCaretToPos(input, pos){
+   		input.focus();
+    	input.setSelectionRange(pos, pos);
+	}
+
+	/**
+	 *	Inserts a string into a given string at the given position
+	 *	@param {String} origString - string to insert to
+	 *	@param {Number} pos - position to insert at
+	 *	@param {String} stringToAdd - string to be inserted
+	 *	@returns {String}
+	 */
+	function addSymbolToStringAtPosition(origString, pos, stringToAdd){
+		return [origString.slice(0,pos), stringToAdd, origString.slice(pos)].join('');
+	}
+
+	/**
 	 * Removes the whole row where the button was clicked
 	 * @param {Object.button} deleteRowButtonObject - delete row button that was clicked
 	 */
@@ -442,9 +472,6 @@ $(document).ready(function(){
 		newRow.append(cols);
 
 		let rowIndex = $(addAboveButtonObject).parents().closest("tr").index();
-		console.log("Adding row above " + rowIndex);
-		
-		var checkLast;
 
 		//update line deps and rule references
 		$("#proof-table tr").each(function(i, row){
@@ -452,8 +479,6 @@ $(document).ready(function(){
 			let $row = $(row);
 			let lineDeps = $row.find('input[name*="dependencyInput"]')[0].value.replace(/\s/g,''); //line deps of current line as string
 			let ruleRefs = $row.find('input[name*="justificationInput"]')[0].value.replace(/\s/g,'');; //rule references of current line as string
-
-			console.log(ruleRefs);
 
 			if(lineDeps !== ""){
 				let tempLineDeps = lineDeps.split(",").map(Number);
@@ -466,7 +491,6 @@ $(document).ready(function(){
 			}
 
 			if(ruleRefs !== ""){
-				console.log("we get here");
 				let tempRuleRefs = ruleRefs.split(",").map(Number);
 				for(var counter=0; counter<tempRuleRefs.length; counter++){
 					let currentValue = tempRuleRefs[counter];
@@ -493,7 +517,6 @@ $(document).ready(function(){
 		newRow.append(cols);
 
 		let rowIndex = $(addBelowButtonObject).parents().closest("tr").index();
-		console.log("Adding row below " + rowIndex);
 
 		//update line deps and rule references
 		$("#proof-table tr").each(function(i, row){
@@ -514,7 +537,6 @@ $(document).ready(function(){
 
 			if(ruleRefs !== ""){
 				let tempRuleRefs = ruleRefs.split(",").map(Number);
-				console.log(tempRuleRefs);
 				for(var counter=0; counter<tempRuleRefs.length; counter++){
 					let currentValue = tempRuleRefs[counter];
 					if(tempRuleRefs[counter] > rowIndex)
