@@ -68,6 +68,19 @@ $(document).ready(function(){
 			}
 		}
 	});
+	$("#logic-falsum").click(function(){
+		if(!formulaValid){
+			caretPosition = $("#formula").prop("selectionStart");
+			$("#formula").val( addSymbolToStringAtPosition( $("#formula").val(), caretPosition++, "⊥" ) );
+			setCaretToPos($("#formula")[0], caretPosition);
+		}else{
+			if($lastFocus != null){
+				caretPosition = $lastFocus.prop("selectionStart");
+				$lastFocus.val( addSymbolToStringAtPosition( $lastFocus.val(), caretPosition++, "⊥" ) );
+				setCaretToPos($lastFocus[0], caretPosition);
+			}
+		}
+	});
 	$("#logic-submit").click(function(){
 		if(formulaValid == false){
 			$("#formula").val( $("#formula").val().toUpperCase().replace(/\s/g,'') );

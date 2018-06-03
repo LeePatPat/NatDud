@@ -1,3 +1,11 @@
+.falsum-font{
+	font-weight: 900;
+	font-size: 1.45rem;
+	padding-left: 4px;
+	padding-right: 4px;
+	padding-top: 6px;
+	padding-bottom: 7px;
+}
 body {
 	background-color: #bee4f3;
 }
