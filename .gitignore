@@ -1,3 +1,6 @@
 
 *.log
 node_modules/
+js/proofEngine.js
+QUnit/testsCompiled.js
+test_framework/test_framework_compiled.js
