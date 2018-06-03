@@ -18,6 +18,7 @@ This will install the files necessary for further development.
 If you want to develop this application further, you can check the **package.json** file.
 Under **scripts**, there are multiple to choose from.
 I would recommend running all **watch** scripts simoultaneously in order to compile everything for the main application, unit testing and the testing application, when any changes occur.
+To run all simoutaneously, execute **npm run watchAll** . This ensures all are compiled in parallel.
 
 ## API Reference
 

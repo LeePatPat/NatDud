@@ -9,7 +9,9 @@
     "buildTest": "browserify test_framework/test_framework.js -o test_framework/test_framework_compiled.js",
     "watchTest": "watchify test_framework/test_framework.js -o test_framework/test_framework_compiled.js",
     "buildQUnit": "browserify QUnit/tests.js -o QUnit/testsCompiled.js",
-    "watchQUnit": "watchify QUnit/tests.js -o QUnit/testsCompiled.js"
+    "watchQUnit": "watchify QUnit/tests.js -o QUnit/testsCompiled.js",
+	"watchAll": "concurrently --kill-others \"npm run watch\" \"npm run watchTest\" \"npm run watchQUnit\"",
+	"buildAll": "concurrently --kill-others \"npm run build\" \"npm run buildTest\" \"npm run buildQUnit\""
   },
   "repository": {
     "type": "git",
@@ -19,6 +21,7 @@
   "license": "ISC",
   "devDependencies": {
     "browserify": "^15.2.0",
+    "concurrently": "^3.5.1",
     "watchify": "^3.9.0"
   },
   "dependencies": {
