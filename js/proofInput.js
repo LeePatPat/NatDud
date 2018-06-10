@@ -116,7 +116,7 @@ $(document).ready(function(){
 
 				//add proof table headers
 				var newRow = $("<tr>");
-				var cols   = "<th>Assumptions</th>";
+				var cols   = "<th>Dependencies</th>";
 					cols  += "<th></th>";
 					cols  += "<th>Formula</th>";
 					cols  += "<th>Justification</th>";
