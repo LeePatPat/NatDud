@@ -269,8 +269,6 @@ $(document).ready(function(){
 		var currRuleRefs = $row.find("input[name='justificationInput']").val().replace(/\s/g,'');
 		var currRule 	 = $row.find("select[name='ruleInput']").find(":selected").val().toLowerCase().replace(/\s/g,'');
 
-		console.log(currRule);
-
 		//check if tombstone object is sensible
 		let formulaTombstoneObject = null;
 		let formulaTree = null;
@@ -342,6 +340,12 @@ $(document).ready(function(){
 				$line  = $row.find('input[name*="proofLineInput"]').val().toUpperCase().replace(/\s/g,''),
 				$rule  = $row.find('select[name*="ruleInput"]').find(":selected").val().toLowerCase().replace(/\s/g,''),
 				$just  = $row.find('input[name*="justificationInput"]').val().toUpperCase().replace(/\s/g,'');
+
+			//line is blank: add to proof and continue in the loop
+			if($deps==="" && $line==="" && $rule==="null" && $just===""){
+				partialProofData.push(new ProofLine([], i.toString(), "", "", []));
+				return true;
+			}
 
 			//check if current line is wff
 			let currentTombstoneObject = new tombstone.Statement( toTombstoneString($line) );
