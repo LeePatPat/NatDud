@@ -157,20 +157,6 @@ QUnit.module("Proof Valiadator - Full Validation Units", function() {
 		assert.ok( pv.isProofValid() , getProofAsString(proof));
 	});
 
-	QUnit.test( "Detecting Undischarged Assumptions", function( assert ) {
-		var tree  = stringToParseTree("P->(P||(Q&~R))");
-		var proof = [];
-
-		proof.push( new ProofLine([1], 1, "P",    			"assume",   []   ) );
-		proof.push( new ProofLine([2], 2, "S", 				"assume", 	[]   ) );
-		proof.push( new ProofLine([1], 3, "P||(Q&~R)", 		"orintro", 	[1]  ) );
-		proof.push( new ProofLine([],  4, "P->(P||(Q&~R))", "impintro", [1,3]) );
-
-		var pv = new ProofValidator(tree, proof, true);
-
-		assert.notOk( pv.isProofValid() , pv.getFeedback()[0]);
-	});
-
 	QUnit.test( "Final Line Is Not Initial Theroem Input", function( assert ) {
 		var tree  = stringToParseTree("A->A");
 		var proof = [];
