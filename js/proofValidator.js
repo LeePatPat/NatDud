@@ -63,10 +63,7 @@ class ProofValidator {
                 var currentRule = currentLine.getRule().toLowerCase();
                 var currentRuleJustification = currentLine.getRuleDependencies();
 
-                if(i+1 === this.proof.length && currentLineDeps.length > 0){ //fullValidation && last line AND there are still line dependencies
-                    this._addProblemToProblemList(currentLineNumber, "All the proof steps are valid, but some assumptions have not been discharged, so the theorem has not been proved.");
-                    return false;
-                }else if(this._isLineBlank(currentLine)){
+                if(this._isLineBlank(currentLine)){
                     continue; //ignore completely blank lines
                 }
 

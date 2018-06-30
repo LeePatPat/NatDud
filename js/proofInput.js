@@ -331,9 +331,12 @@ $(document).ready(function(){
 			actualString = "";
 		//loop through all table rows up until the row that wants to be checked
 		$("#proof-table tr").each(function(i, row){	
-			if(i===0) return true; //skip proof table headers
-			else if(i === currLineNum) return false; //we've reached the current line, break
-			else if( $.inArray( i.toString(), currJust ) === -1 ) return true; //skip to next line if this line is not in the justifications
+			if(i===0)
+				return true; //skip proof table headers
+			else if(i === currLineNum)
+				return false; //we've reached the current line, break
+			else if( $.inArray( i.toString(), currJust ) === -1 )
+				return true; //skip to next line if this line is not in the justifications
 
 			let $row   = $(row),
 				$deps  = $row.find('input[name*="dependencyInput"]').val().replace(/\s/g,''),
