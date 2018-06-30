@@ -187,12 +187,6 @@ class ProofValidator {
             }
         }
 
-        //check assumptions are discharged only when fullValidation flag is active
-        if(this.fullValidation===true && this.assumeList.length > 0){
-            this._addProblemToProblemList(currentLineNumber, "All assumptions have not been discharged.");
-            return false;
-        }
-
         this.problemList.push("Proof is valid! Rule usage is valid, line dependencies are correct and all assumptions are discharged.");
         return true; //all assumptions discharged, line dependencies are correct and use of rules are valid; proof is valid
     }
