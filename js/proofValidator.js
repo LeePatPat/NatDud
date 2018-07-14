@@ -206,10 +206,14 @@ class ProofValidator {
         if(deps.length > 5 || deps.length < 5){ //does not have 5 justifications
             this._addProblemToProblemList(currentLineNumber, "∨-elim must reference exactly five proof lines.");
             return false;
-        }else if(deps[0] > deps[1] || deps[1] > deps[2] || deps[2] > deps[3] || deps[3] > deps[4]){ //justifications not in correct order
+        }
+
+        /*else if(deps[0] > deps[1] || deps[1] > deps[2] || deps[2] > deps[3] || deps[3] > deps[4]){ //justifications not in correct order
             this._addProblemToProblemList(currentLineNumber, "the rule justifications are not in order; the validator requires the rule references be in ascending order. E.g. 1,2,3,4,5");
             return false;
-        }else if(deps[4] >= currentLineNumber){ //any of the justifications are greater than the current line number
+        }*/
+
+        else if(deps[4] >= currentLineNumber){ //any of the justifications are greater than the current line number
             this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }
