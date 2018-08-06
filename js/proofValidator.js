@@ -206,14 +206,7 @@ class ProofValidator {
         if(deps.length > 5 || deps.length < 5){ //does not have 5 justifications
             this._addProblemToProblemList(currentLineNumber, "∨-elim must reference exactly five proof lines.");
             return false;
-        }
-
-        /*else if(deps[0] > deps[1] || deps[1] > deps[2] || deps[2] > deps[3] || deps[3] > deps[4]){ //justifications not in correct order
-            this._addProblemToProblemList(currentLineNumber, "the rule justifications are not in order; the validator requires the rule references be in ascending order. E.g. 1,2,3,4,5");
-            return false;
-        }*/
-
-        else if(deps[4] >= currentLineNumber){ //any of the justifications are greater than the current line number
+        }else if(deps[4] >= currentLineNumber){ //any of the justifications are greater than the current line number
             this._addProblemToProblemList(currentLineNumber, "When using an inference rule, you can only reference proof lines above the current line.");
             return false;
         }
@@ -225,7 +218,7 @@ class ProofValidator {
         let dep1tree = new tombstone.Statement(dep1prop).tree["tree"][0];
         let dep1mainOp = dep1tree["name"];
         if(dep1mainOp !== "||"){ //not a disjunction
-            this._addProblemToProblemList(currentLineNumber, "The first proof line referenced by ∨-elim must be a disjunction ('or' operation), such as A ∨ B.");
+            this._addProblemToProblemList(currentLineNumber, "The first proof line referenced by ∨-elim must be a disjunction ('or' operation), such as A∨B.");
             return false;
         }
 
@@ -235,7 +228,7 @@ class ProofValidator {
         let dep2prop = dep2line.getProposition();
         let dep2rule = dep2line.getRule(); //assume
         if(dep1leftDisj !== dep2prop){ //left of the conjunction is not the first assumption
-            this._addProblemToProblemList(currentLineNumber, "The second proof line referenced by ∨-elim must be an assumption of the left side of the disjunction. For example, from A ∨ B, this must be an assumption of A.");
+            this._addProblemToProblemList(currentLineNumber, "The second proof line referenced by ∨-elim must be an assumption of the left side of the disjunction. For example, from A∨B, this must be an assumption of A.");
             return false;
         }else if(dep2rule !== "assume"){ //second justification is not an assumption
             this._addProblemToProblemList(currentLineNumber, "The second proof line referenced is not an assumption. It must be an assumption so that it can be discharged by ∨-elim.");
@@ -257,7 +250,7 @@ class ProofValidator {
         let dep4prop = dep4line.getProposition();
         let dep4rule = dep4line.getRule(); //assume
         if(dep1rightDisj !== dep4prop){ //does not match the right side of the disjunction 
-            this._addProblemToProblemList(currentLineNumber, "The fourth proof line referenced by ∨-elim must be an assumption of the right side of the disjunction. For example, from A ∨ B, this must be an assumption of B.");
+            this._addProblemToProblemList(currentLineNumber, "The fourth proof line referenced by ∨-elim must be an assumption of the right side of the disjunction. For example, from A∨B, this must be an assumption of B.");
             return false;
         }else if(dep4rule !== "assume"){ //rule for 4th justification is not an assumption
             this._addProblemToProblemList(currentLineNumber, "The fourth proof line referenced is not an assumption. It must be an assumption so that it can be discharged by ∨-elim.");
@@ -274,6 +267,11 @@ class ProofValidator {
             return false;
         }
 
+
+
+        console.log("WE ARE FINISHED orElim SYNTAX CHECKING");
+
+
         //---------------------LINE DEP CHECKS-----------------------------//
         let gammaDeps = dep1line.getDependencies().sort();    //Gamma
         let dep2deps  = dep2line.getDependencies().sort();    //l
@@ -281,6 +279,44 @@ class ProofValidator {
         let dep4deps  = dep4line.getDependencies().sort();    //n
         let dep5deps  = dep5line.getDependencies().sort();    //{n} union Sigma
         let currDeps  = currentLine.getDependencies().sort(); //Gamma union Delta union Sigma
+
+        console.log("BEFORE FIRST LINE DEP SEQUENT CHECK");
+
+        //check if 3rd line referenced relies upon the 2nd line referenced
+        //i.e. check if they form a sequent. If not, return an error.
+        var secondThirdReferenceSequenceCheck = false;
+        for(var i=0; i<dep2deps.length; i++){
+            for(var j=0; j<dep3deps.length; j++){
+                if(dep2deps[i] === dep3deps[j]){
+                    secondThirdReferenceSequenceCheck = true;
+                    break;
+                }
+            }
+        }
+        if(secondThirdReferenceSequenceCheck === false){
+            this._addProblemToProblemList(currentLineNumber, "To use ∨-elim, the second and third proof lines referenced should form a sequent. The formula in the third line referenced must depend on the assumption in the second line referenced.");
+            return false;
+        }
+
+        console.log("WE ARE FINISHED FIRST LINE DEP SEQUENT CHECK");
+
+        //check if 5th line referenced relies upon the 4th line referenced
+        //i.e. check if they form a sequent. If not, return an error.
+        var fourthFifthReferenceSequenceCheck = false;
+        for(var i=0; i<dep4deps.length; i++){
+            for(var j=0; j<dep5deps.length; j++){
+                if(dep4deps[i] === dep5deps[j]){
+                    fourthFifthReferenceSequenceCheck = true;
+                    break;
+                }
+            }
+        }
+        if(fourthFifthReferenceSequenceCheck === false){
+            this._addProblemToProblemList(currentLineNumber, "To use ∨-elim, the fourth and fifth proof lines referenced should form a sequent. The formula in the fifth line referenced must depend on the assumption in the fourth line referenced.");
+            return false;
+        }
+
+        console.log("WE ARE FINISHED SECOND LINE DEP SEQUENT CHECK");
 
         //get Delta from {l, Delta}
         let tempDeps = dep2deps.concat(dep3deps);
@@ -295,9 +331,12 @@ class ProofValidator {
         }
         var deltaDeps = [];
         for(var i=0; i<tempDeps.length; i++){//remove duplicates
-            if(removeIndexes.includes(i)) continue;
+            if(removeIndexes.includes(i))
+                continue;
             deltaDeps.push(tempDeps[i]);
         }
+
+        console.log("WE ARE FINISHED FIRST DEPS CHECK");
 
         //get Sigma from {n, Sigma}
         tempDeps = dep4deps.concat(dep5deps);
@@ -312,16 +351,29 @@ class ProofValidator {
         }
         var sigmaDeps = [];
         for(var i=0; i<tempDeps.length; i++){//remove duplicates
-            if(removeIndexes.includes(i)) continue;
+            if(removeIndexes.includes(i))
+                continue;
             sigmaDeps.push(tempDeps[i]);
         }
+
+        console.log("WE ARE FINISHED SECOND DEPS CHECK");
 
         //combine all greek sets and check if the user has the same
         var greekSet = gammaDeps.concat(deltaDeps.concat(sigmaDeps)).sort();
         greekSet = new Set(greekSet);
         currDeps = new Set(currDeps);
+
+        //check if line dependencies are correct, then check if there are any assumptions
+        //still included in the current line's line dependencies
         if(!this._areSetsEqual(greekSet, currDeps)){
-            this._addProblemToProblemList(currentLineNumber, "To use ∨-elim, the second and third proof lines referenced should form a sequent. The formula in the third line referenced must depend on the assumption in the second line referenced. The fourth and fifth proof lines referenced should form a sequent. The formula in the fifth line referenced must depend on the assumption in the fourth line referenced. The dependencies should not include the assumption in the second proof line referenced. This assumption should be discharged by ∨-elim. The dependencies should not include the assumption in the fourth proof line referenced. This assumption should be discharged by ∨-elim. The dependencies are incorrect. The dependencies should consist of those for the disjunction (in the first proof line referenced) together with any additional assumptions used in deducing the conclusion (in the third and fifth proof lines referenced) from the two disjuncts (in the second and fourth proof lines referenced).");
+            if(currDeps.includes( deps[1].getLineNum() )){ //if first assumption line number is in current line's line deps
+                this._addProblemToProblemList(currentLineNumber, "The dependencies should not include the assumption in the second proof line referenced. This assumption should be discharged by ∨-elim.");
+                return false;
+            }else if(currDeps.includes( deps[3].getLineNum() )){ //if second assumption line number is in current line's line deps
+                this._addProblemToProblemList(currentLineNumber, "The dependencies should not include the assumption in the fourth proof line referenced. This assumption should be discharged by ∨-elim.");
+                return false;
+            }
+            this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. The dependencies should consist of those for the disjunction (in the first proof line referenced) together with any additional assumptions used in deducing the conclusion (in the third and fifth proof lines referenced) from the two disjuncts (in the second and fourth proof lines referenced).");
             return false;
         }
         //-----------------------END OF LINE DEP CHECK---------------------//
@@ -334,7 +386,6 @@ class ProofValidator {
         index = this.assumeList.indexOf(dep4line.getLineNum());
         if(index !== -1)
             this.assumeList.splice(index, 1);
-
 
         return true;
     }
