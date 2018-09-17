@@ -112,8 +112,8 @@ QUnit.module("Proof Valiadator - Full Validation Units", function() {
 		var tree  = stringToParseTree("A->A");
 		var proof = [];
 
-		proof.push( new ProofLine([1], 1, "A",    "assume",   []   ) );
-		proof.push( new ProofLine([],  2, "A->A", "impintro", [1,1]) );
+		proof.push( new ProofLine(["1"], 1, "A",    "assume",   []   	   ) );
+		proof.push( new ProofLine([],    2, "A->A", "impintro", ["1","1"]  ) );
 
 		var pv = new ProofValidator(tree, proof, true);
 
@@ -125,13 +125,13 @@ QUnit.module("Proof Valiadator - Full Validation Units", function() {
 		var tree  = prop.tree["tree"][0];
 		var proof = [];
 
-		proof.push( new ProofLine([1],   1, "~P", 			"assume", 	[]) );
-		proof.push( new ProofLine([2],   2, "P", 			"assume", 	[]) );
-		proof.push( new ProofLine([1],   3, "P->F", 		"notelim", 	[1]) );
-		proof.push( new ProofLine([1,2], 4, "F", 			"impelim", 	[2,3]) );
-		proof.push( new ProofLine([1,2], 5, "Q", 			"efq", 		[4]) );
-		proof.push( new ProofLine([1],   6, "P->Q", 		"impintro", [2,5]) );
-		proof.push( new ProofLine([],    7, "~P->(P->Q)", 	"impintro", [1,6]) );
+		proof.push( new ProofLine(["1"],     1, "~P", 			"assume", 	[]			) );
+		proof.push( new ProofLine(["2"],     2, "P", 			"assume", 	[]			) );
+		proof.push( new ProofLine(["1"],     3, "P->F", 		"notelim", 	["1"]		) );
+		proof.push( new ProofLine(["1","2"], 4, "F", 			"impelim", 	["2","3"]	) );
+		proof.push( new ProofLine(["1","2"], 5, "Q", 			"efq", 		["4"]		) );
+		proof.push( new ProofLine(["1"],     6, "P->Q", 		"impintro", ["2","5"]	) );
+		proof.push( new ProofLine([],    	 7, "~P->(P->Q)", 	"impintro", ["1","6"]	) );
 
 		var pv = new ProofValidator(tree, proof, true);
 
@@ -143,14 +143,14 @@ QUnit.module("Proof Valiadator - Full Validation Units", function() {
 		var tree  = prop.tree["tree"][0];
 		var proof = [];
 
-		proof.push( new ProofLine( [1],   1, "R||S", 		  		"assume",   []			) );
-		proof.push( new ProofLine( [2],   2, "R->S", 		  		"assume",   []			) );
-		proof.push( new ProofLine( [3],   3, "R", 	  				"assume",  	[1]			) );
-		proof.push( new ProofLine( [2,3], 4, "S", 		  			"impelim",  [3,2]		) );
-		proof.push( new ProofLine( [5],   5, "S", 		  			"assume", 	[]			) );
-		proof.push( new ProofLine( [1,2], 6, "S", 	  				"orelim", 	[1,3,4,5,5]	) );
-		proof.push( new ProofLine( [1],   7, "(R->S)->S",		 	"impintro", [2,6]		) );
-		proof.push( new ProofLine( [],    8, "(R||S)->((R->S)->S)", "impintro", [1,7]		) );
+		proof.push( new ProofLine( ["1"],     1, "R||S", 		  		"assume",   []						) );
+		proof.push( new ProofLine( ["2"],     2, "R->S", 		  		"assume",   []						) );
+		proof.push( new ProofLine( ["3"],     3, "R", 	  				"assume",  	["1"]					) );
+		proof.push( new ProofLine( ["2","3"], 4, "S", 		  			"impelim",  ["3","2"]				) );
+		proof.push( new ProofLine( ["5"],     5, "S", 		  			"assume", 	[]						) );
+		proof.push( new ProofLine( ["1","2"], 6, "S", 	  				"orelim", 	["1","3","4","5","5"]	) );
+		proof.push( new ProofLine( ["1"],     7, "(R->S)->S",		 	"impintro", ["2","6"]				) );
+		proof.push( new ProofLine( [],        8, "(R||S)->((R->S)->S)", "impintro", ["1","7"]				) );
 
 		var pv = new ProofValidator(tree, proof, true);
 
@@ -190,12 +190,12 @@ QUnit.module("Proof Valiadator - Rule Function Units", function() {
 	QUnit.test( "Disjunction Elimination - Positive Case 1", function( assert ) {
 		var proof = [];
 
-		proof.push( new ProofLine( [1],   1, "R||S", 	"assume",   []			) );
-		proof.push( new ProofLine( [2],   2, "R->S", 	"assume",   []			) );
-		proof.push( new ProofLine( [3],   3, "R", 	  	"assume",  	[1]			) );
-		proof.push( new ProofLine( [2,3], 4, "S", 		"impelim",  [3,2]		) );
-		proof.push( new ProofLine( [5],   5, "S", 		"assume", 	[]			) );
-		proof.push( new ProofLine( [1,2], 6, "S", 	  	"orelim", 	[1,3,4,5,5]	) );
+		proof.push( new ProofLine( ["1"],     1, "R||S", 	"assume",   []						) );
+		proof.push( new ProofLine( ["2"],     2, "R->S", 	"assume",   []						) );
+		proof.push( new ProofLine( ["3"],     3, "R", 	  	"assume",  	["1"]					) );
+		proof.push( new ProofLine( ["2","3"], 4, "S", 		"impelim",  ["3","2"]				) );
+		proof.push( new ProofLine( ["5"],     5, "S", 		"assume", 	[]						) );
+		proof.push( new ProofLine( ["1","2"], 6, "S", 	  	"orelim", 	["1","3","4","5","5"]	) );
 
 		var pv = new ProofValidator(null, proof, false);
 
@@ -205,15 +205,15 @@ QUnit.module("Proof Valiadator - Rule Function Units", function() {
 	QUnit.test( "Disjunction Elimination - Positive Case 2", function( assert ) {
 		var proof = [];
 
-		proof.push( new ProofLine( [1],   1, "(A->C)||(B->C)", 	"assume",   []			) );
-		proof.push( new ProofLine( [2],   2, "A&B",			 	"assume",   []			) );
-		proof.push( new ProofLine( [3],   3, "A->C", 	  		"assume",	[]			) );
-		proof.push( new ProofLine( [2],   4, "A", 				"andelim",  [2]			) );
-		proof.push( new ProofLine( [2,3], 5, "C", 				"impelim",	[4,3]		) );
-		proof.push( new ProofLine( [6],  6, "B->C",		 	"assume",   []			) );
-		proof.push( new ProofLine( [2],   7, "B",			 	"andelim",  [2]			) );
-		proof.push( new ProofLine( [2,6], 8, "C",			 	"impelim",  [7,6]		) );
-		proof.push( new ProofLine( [1,2], 9, "C",			 	"orelim",   [1,3,5,6,8]	) );
+		proof.push( new ProofLine( ["1"],     1, "(A->C)||(B->C)", 	"assume",   []						) );
+		proof.push( new ProofLine( ["2"],     2, "A&B",			 	"assume",   []						) );
+		proof.push( new ProofLine( ["3"],     3, "A->C", 	  		"assume",	[]						) );
+		proof.push( new ProofLine( ["2"],     4, "A", 				"andelim",  ["2"]					) );
+		proof.push( new ProofLine( ["2","3"], 5, "C", 				"impelim",	["4","3"]				) );
+		proof.push( new ProofLine( ["6"],     6, "B->C",		 	"assume",   []						) );
+		proof.push( new ProofLine( ["2"],     7, "B",			 	"andelim",  ["2"]					) );
+		proof.push( new ProofLine( ["2","6"], 8, "C",			 	"impelim",  ["7","6"]		    	) );
+		proof.push( new ProofLine( ["1","2"], 9, "C",			 	"orelim",   ["1","3","5","6","8"]	) );
 
 		var pv = new ProofValidator(null, proof, false);
 
@@ -361,12 +361,12 @@ QUnit.module("Proof Valiadator - Rule Function Units", function() {
 	QUnit.test( "Disjunction Elimination - Correct Line Dependencies", function( assert ) {
 		var proof = [];
 
-		proof.push( new ProofLine( [1],   1, "R||S", 	"assume",   []			) );
-		proof.push( new ProofLine( [2],   2, "R->S", 	"assume",   []			) );
-		proof.push( new ProofLine( [3],   3, "R", 	  	"assume",	[1]			) );
-		proof.push( new ProofLine( [2,3], 4, "S", 		"impelim",  [3,2]		) );
-		proof.push( new ProofLine( [5],   5, "S", 		"assume",	[]			) );
-		proof.push( new ProofLine( [1,2], 6, "S", 	  	"orelim", 	[1,3,4,5,5]	) );
+		proof.push( new ProofLine( ["1"],     1, "R||S", 	"assume",   []						) );
+		proof.push( new ProofLine( ["2"],     2, "R->S", 	"assume",   []						) );
+		proof.push( new ProofLine( ["3"],     3, "R", 	  	"assume",	["1"]					) );
+		proof.push( new ProofLine( ["2","3"], 4, "S", 		"impelim",  ["3","2"]				) );
+		proof.push( new ProofLine( ["5"],     5, "S", 		"assume",	[]						) );
+		proof.push( new ProofLine( ["1","2"], 6, "S", 	  	"orelim", 	["1","3","4","5","5"]	) );
 
 		var pv = new ProofValidator(null, proof, false);
 
@@ -393,9 +393,9 @@ QUnit.module("Proof Valiadator - Rule Function Units", function() {
 	QUnit.test( "Reductio Ad Absurdum - Positive Case", function( assert ) {
 		var proof = [];
 
-		proof.push( new ProofLine( [1],   1, "~(B||~B)",  "assume",   []	) );
-		proof.push( new ProofLine( [1],   2, "F", 		  "impelim",  [0,0]	) );
-		proof.push( new ProofLine( [],    3, "B||~B", 	  "raa",  	  [1,2]	) );
+		proof.push( new ProofLine( ["1"],   1, "~(B||~B)",  "assume",   []			) );
+		proof.push( new ProofLine( ["1"],   2, "F", 		"impelim",  ["0","0"]	) );
+		proof.push( new ProofLine( [],      3, "B||~B", 	"raa",  	["1","2"]	) );
 
 		var pv = new ProofValidator(null, proof, false);
 
@@ -489,9 +489,9 @@ QUnit.module("Proof Valiadator - Rule Function Units", function() {
 	QUnit.test( "Reductio Ad Absurdum - Correct Line Dependencies", function( assert ) {
 		var proof = [];
 
-		proof.push( new ProofLine( [1],   1, "~(B||~B)",  "assume",   []	) );
-		proof.push( new ProofLine( [1],   2, "F", 		  "impelim",  [0,0]	) );
-		proof.push( new ProofLine( [],    3, "B||~B", 	  "raa",  	  [1,2]	) );
+		proof.push( new ProofLine( ["1"],   1, "~(B||~B)",  "assume",   []			) );
+		proof.push( new ProofLine( ["1"],   2, "F", 		"impelim",  ["0","0"]	) );
+		proof.push( new ProofLine( [],      3, "B||~B", 	"raa",  	["1","2"]	) );
 
 		var pv = new ProofValidator(null, proof, false);
 
@@ -515,8 +515,8 @@ QUnit.module("Proof Valiadator - Rule Function Units", function() {
 	QUnit.test( "Implication Introduction - Positive Case 1", function( assert ) {
 		var proof = [];
 
-		proof.push( new ProofLine([1], 1, "A",    "assume",   []   ) );
-		proof.push( new ProofLine([],  2, "A->A", "impintro", [1,1]) );
+		proof.push( new ProofLine(["1"], 1, "A",    "assume",   []   		) );
+		proof.push( new ProofLine([],    2, "A->A", "impintro", ["1","1"]	) );
 
 		var pv = new ProofValidator(null, proof, false);
 
@@ -526,9 +526,9 @@ QUnit.module("Proof Valiadator - Rule Function Units", function() {
 	QUnit.test( "Implication Introduction - Positive Case 2", function( assert ) {
 		var proof = [];
 
-		proof.push( new ProofLine([1], 1, "A",    "assume",   []   ) );
-		proof.push( new ProofLine([1], 2, "B",    "impelim",  []   ) );
-		proof.push( new ProofLine([],  3, "A->B", "impintro", [1,2]) );
+		proof.push( new ProofLine(["1"], 1, "A",    "assume",   []   		) );
+		proof.push( new ProofLine(["1"], 2, "B",    "impelim",  []   		) );
+		proof.push( new ProofLine([],    3, "A->B", "impintro", ["1","2"]	) );
 
 		var pv = new ProofValidator(null, proof, false);
 
@@ -616,8 +616,8 @@ QUnit.module("Proof Valiadator - Rule Function Units", function() {
 	QUnit.test( "Implication Introduction - Correct Line Dependencies", function( assert ) {
 		var proof = [];
 
-		proof.push( new ProofLine([1], 1, "A",    "assume",   []   ) );
-		proof.push( new ProofLine([],  2, "A->A", "impintro", [1,1]) );
+		proof.push( new ProofLine(["1"], 1, "A",    "assume",   []   		) );
+		proof.push( new ProofLine([],    2, "A->A", "impintro", ["1","1"]	) );
 
 		var pv = new ProofValidator(null, proof, false);
 
