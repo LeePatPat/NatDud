@@ -268,7 +268,6 @@ class ProofValidator {
         }
 
 
-
         //---------------------LINE DEP CHECKS-----------------------------//
         let gammaDeps = dep1line.getDependencies().sort();    //Gamma
         let dep2deps  = dep2line.getDependencies().sort();    //l
@@ -277,34 +276,14 @@ class ProofValidator {
         let dep5deps  = dep5line.getDependencies().sort();    //{n} union Sigma
         let currDeps  = currentLine.getDependencies().sort(); //Gamma union Delta union Sigma
 
-        //check if 3rd line referenced relies upon the 2nd line referenced
-        //i.e. check if they form a sequent. If not, return an error.
-        var secondThirdReferenceSequenceCheck = false;
-        for(var i=0; i<dep2deps.length; i++){
-            for(var j=0; j<dep3deps.length; j++){
-                if(dep2deps[i] === dep3deps[j]){
-                    secondThirdReferenceSequenceCheck = true;
-                    break;
-                }
-            }
-        }
-        if(secondThirdReferenceSequenceCheck === false){
+        //check if the 3rd reference line does not depend on the 2nd reference line (i.e. they do not form a sequent)
+        if(!dep3deps.includes( dep2line.getLineNum().toString() )){
             this._addProblemToProblemList(currentLineNumber, "To use ∨-elim, the second and third proof lines referenced should form a sequent. The formula in the third line referenced must depend on the assumption in the second line referenced.");
             return false;
         }
 
-        //check if 5th line referenced relies upon the 4th line referenced
-        //i.e. check if they form a sequent. If not, return an error.
-        var fourthFifthReferenceSequenceCheck = false;
-        for(var i=0; i<dep4deps.length; i++){
-            for(var j=0; j<dep5deps.length; j++){
-                if(dep4deps[i] === dep5deps[j]){
-                    fourthFifthReferenceSequenceCheck = true;
-                    break;
-                }
-            }
-        }
-        if(fourthFifthReferenceSequenceCheck === false){
+        //check if the 5th reference line does not depend on the 4th reference line (i.e. they do not form a sequent)
+        if(!dep5deps.includes( dep4line.getLineNum().toString() )){
             this._addProblemToProblemList(currentLineNumber, "To use ∨-elim, the fourth and fifth proof lines referenced should form a sequent. The formula in the fifth line referenced must depend on the assumption in the fourth line referenced.");
             return false;
         }
@@ -350,13 +329,12 @@ class ProofValidator {
         greekSet = new Set(greekSet);
         currDeps = new Set(currDeps);
 
-        //check if line dependencies are correct, then check if there are any assumptions
-        //still included in the current line's line dependencies
+        //if the line dependencies are incorrect then check if the assumptions are included. If not, display generic error message.
         if(!this._areSetsEqual(greekSet, currDeps)){
-            if(currDeps.includes( deps[1].getLineNum() )){ //if first assumption line number is in current line's line deps
+            if(currDeps.has( dep2line.getLineNum().toString() )){ //if first assumption line number is in current line's line deps
                 this._addProblemToProblemList(currentLineNumber, "The dependencies should not include the assumption in the second proof line referenced. This assumption should be discharged by ∨-elim.");
                 return false;
-            }else if(currDeps.includes( deps[3].getLineNum() )){ //if second assumption line number is in current line's line deps
+            }else if(currDeps.has( dep4line.getLineNum().toString() )){ //if second assumption line number is in current line's line deps
                 this._addProblemToProblemList(currentLineNumber, "The dependencies should not include the assumption in the fourth proof line referenced. This assumption should be discharged by ∨-elim.");
                 return false;
             }
@@ -440,6 +418,13 @@ class ProofValidator {
         let currentLineDeps = currentLine.getDependencies().sort(); //5,6
         let tempDeps        = dep1deps.concat(dep2deps); //list for final comparison
         let removeIndexes   = []; //list of indexes to remove from tempDeps
+
+        //check if the 2nd reference line does not depend on the 1st reference line (i.e. they do not form a sequent)
+        if(!dep2deps.includes( dep1line.getLineNum().toString() )){
+            this._addProblemToProblemList(currentLineNumber, "To use RAA, the two proof lines referenced should form a sequent. The formula in the second line referenced must depend on the assumption in the first line referenced.");
+            return false;
+        }
+
         for(var i=0; i<tempDeps.length-1; i++){ //find indexes that are duplicates
             for(var j=i+1; j<tempDeps.length; j++){
                 if(tempDeps[i] === tempDeps[j]){
@@ -458,6 +443,11 @@ class ProofValidator {
         newDeps = new Set(newDeps);
         currentLineDeps = new Set(currentLineDeps);
         if(!this._areSetsEqual(newDeps, currentLineDeps)){
+            //check if the first line referenced is included in teh dependencies
+            if(currentLineDeps.has( dep1line.getLineNum().toString() )){ //if first assumption line number is in current line's line deps
+                this._addProblemToProblemList(currentLineNumber, "The dependencies should not include the assumption in the first proof line referenced. This assumption should be discharged by RAA.");
+                return false;
+            }
             this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. The dependencies should consist of any additional assumptions used in deducing falsum (in the second proof line referenced) from the negated assumption (in the first proof line referenced).");
             return false;
         }
@@ -529,7 +519,13 @@ class ProofValidator {
         let currentLineDeps = currentLine.getDependencies().sort(); //5,6
         let tempDeps        = dep2deps; //list for final comparison
         let removeIndexes   = []; //list of indexes to remove from tempDeps
-        
+
+        //check if the 2nd reference line does not depend on the 1st reference line (i.e. they do not form a sequent)
+        if(!dep2deps.includes( dep1line.getLineNum().toString() )){
+            this._addProblemToProblemList(currentLineNumber, "To use →-intro, the two proof lines referenced should form a sequent. The formula in the second line referenced must depend on the assumption in the first line referenced.");
+            return false;
+        }
+
         for(var i=0; i<dep1deps.length; i++){
             for(var j=0; j<tempDeps.length; j++){
                 if(dep1deps[i] === tempDeps[j]){
@@ -538,7 +534,13 @@ class ProofValidator {
                 }
             }
         }
+
         if( !this._areArraysEqual(tempDeps, currentLineDeps) ){ //check if correct dependencies are what the user has
+            //check if the first line referenced is included in teh dependencies
+            if(currentLineDeps.includes( dep1line.getLineNum().toString() )){ //if first assumption line number is in current line's line deps
+                this._addProblemToProblemList(currentLineNumber, "The dependencies should not include the assumption in the first proof line referenced. This assumption should be discharged by →-intro.");
+                return false;
+            }
             this._addProblemToProblemList(currentLineNumber, "The dependencies are incorrect. The dependencies should consist of any additional assumptions used in deducing the conclusion (in the second proof line referenced) from the assumption (in the first proof line referenced).");
             return false;
         }
@@ -976,6 +978,12 @@ class ProofValidator {
                 currentRule === "" &&
                 currentLineProposition === ""); //true if line is completely empty
     }
+
+    /**
+     * psuedo-private function to change the dependency
+     * @param {Array.String} line - ProofLine object to be checked for being blank
+     * @returns {Array.Number} isBlank - boolean to represent whether or not the given line is blank
+     */
 }
 
 //import ProofValidator from "proofValidator.js";
