@@ -391,6 +391,8 @@ $(document).ready(function(){
 			displayFeedback("[Line " +currLineNum+"]: This line is not valid. Perhaps check the rule reference line numbers.");
 		}
 
+		console.log(proof_line_validator);
+
 		if(proof_line_validator!=null && proof_line_validator.isProofValid()){ //proof is valid
 			displayValidFeedback("[Line " +currLineNum+"]: This line is currently valid. Rule usage is valid and line dependencies are correct.");
 		}else if(proof_line_validator!=null && !proof_line_validator.isProofValid()){ //proof is not valid
