@@ -978,12 +978,6 @@ class ProofValidator {
                 currentRule === "" &&
                 currentLineProposition === ""); //true if line is completely empty
     }
-
-    /**
-     * psuedo-private function to change the dependency
-     * @param {Array.String} line - ProofLine object to be checked for being blank
-     * @returns {Array.Number} isBlank - boolean to represent whether or not the given line is blank
-     */
 }
 
 //import ProofValidator from "proofValidator.js";
