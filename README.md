@@ -8,7 +8,7 @@ Created as part of my dissertation.
 
 ## Installation
 
-To access a live version: https://liaisong.github.com/
+To access a live version: https://leepatpat.github.com/
 
 If you want your own version, clone this repo and type: **npm install**
 This will install the files necessary for further development.
