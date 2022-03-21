@@ -25,7 +25,7 @@
     "watchify": "^3.9.0"
   },
   "dependencies": {
-    "jquery": "^3.2.1",
+    "jquery": "^3.5.0",
     "qunit": "^2.5.1"
   }
 }
