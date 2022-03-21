@@ -15,9 +15,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://www.github.com/liaisong/natdud"
+    "url": "https://www.github.com/leepatpat/natdud"
   },
-  "author": "LiaisonG",
+  "author": "LeePatPat",
   "license": "ISC",
   "devDependencies": {
     "browserify": "^15.2.0",
